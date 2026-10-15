@@ -1104,6 +1104,47 @@ $('profileForm').addEventListener('submit',async e=>{
     if(data.user)currentUser=data.user;login(currentUser);closeProfileModal();toast('Profil berhasil diperbarui.');
   }catch(err){toast('Gagal memperbarui profil: '+(err.message||'coba lagi.'))}
 });
+let activeSettingKind='categories',editingSettingIndex=-1;
+function settingItems(){
+ if(activeSettingKind==='categories'){
+  const type=$('settingsCategoryType').value;
+  if(!Array.isArray(masterData.categories[type]))masterData.categories[type]=[];
+  return masterData.categories[type];
+ }
+ if(!Array.isArray(masterData[activeSettingKind]))masterData[activeSettingKind]=[];
+ return masterData[activeSettingKind];
+}
+function renderSettings(){
+ const labels={
+  categories:['Kategori transaksi','Kelola kategori berdasarkan jenis transaksi.'],
+  payments:['Metode pembayaran','Kelola metode penerimaan dan pembayaran.'],
+  accounts:['Kas / rekening','Kelola pilihan kas dan rekening transaksi.'],
+  units:['Satuan barang','Kelola satuan kuantitas barang.']
+ };
+ const [title,description]=labels[activeSettingKind]||labels.categories;
+ $('settingsTitle').textContent=title;
+ $('settingsDescription').textContent=description;
+ $('categoryTypePicker').classList.toggle('hidden',activeSettingKind!=='categories');
+ document.querySelectorAll('[data-setting-kind]').forEach(button=>button.classList.toggle('active',button.dataset.settingKind===activeSettingKind));
+ const items=settingItems();
+ $('settingsItems').innerHTML=items.map((item,index)=>`<div class="settings-item"><span>${safe(item)}</span><div class="row-actions"><button class="soft" type="button" data-edit-setting="${index}">Edit</button><button class="danger" type="button" data-delete-setting="${index}">Hapus</button></div></div>`).join('');
+ $('settingsEmpty').classList.toggle('hidden',items.length>0);
+}
+function openSettingItem(index=-1){
+ const items=settingItems();
+ editingSettingIndex=Number.isInteger(index)&&index>=0&&index<items.length?index:-1;
+ $('settingItemModalTitle').textContent=editingSettingIndex>=0?'Edit pilihan':'Tambah pilihan';
+ $('settingItemName').value=editingSettingIndex>=0?items[editingSettingIndex]:'';
+ $('settingItemModal').classList.remove('hidden');
+ document.body.classList.add('modal-open');
+ $('settingItemName').focus();
+}
+function closeSettingItem(){
+ $('settingItemModal').classList.add('hidden');
+ document.body.classList.remove('modal-open');
+ $('settingItemForm').reset();
+ editingSettingIndex=-1;
+}
 document.querySelectorAll('[data-setting-kind]').forEach(b=>b.addEventListener('click',()=>{activeSettingKind=b.dataset.settingKind;renderSettings()}));
 $('settingsCategoryType').addEventListener('change',renderSettings);
 $('addSettingItem').addEventListener('click',()=>openSettingItem());
