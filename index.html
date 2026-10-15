@@ -881,7 +881,7 @@ body.dark-mode .reconfirm-icon{background:#493123;color:#ffc18d}
         <div class="field"><label for="qty">Jumlah / kuantitas</label><input id="qty" type="number" min="0" step="0.001" value="1"></div>
         <div class="field"><label for="unit">Satuan</label><select id="unit"><option>pcs</option><option>kg</option><option>gram</option><option>pack</option><option>box</option><option>liter</option><option>unit</option><option>jam</option><option>lainnya</option></select></div>
         <div class="field"><label for="unitPrice">Harga satuan (Rp)</label><input id="unitPrice" type="number" min="0" step="1" placeholder="0"></div>
-        <div class="field"><label for="amount">Total nilai (Rp) *</label><input id="amount" type="number" min="0" step="1" placeholder="0" required></div>
+        <div class="field"><label for="amount">Total nilai (Rp) *</label><input id="amount" type="number" min="0" step="1" placeholder="0" required><div id="amountHint" class="panel-sub hidden">Biaya roasting dicatat sebagai pengeluaran dan mengurangi saldo kas satu kali.</div></div>
         <div class="field full hidden" id="stockPurchaseField"><label class="stock-purchase-option"><input id="stockPurchase" type="checkbox" style="width:auto;margin-right:7px"> Barang yang dibeli masuk ke persediaan</label><div class="panel-sub">Nilainya tetap dicatat sebagai pengeluaran; jumlah barang ditambahkan ke stok otomatis.</div></div>
         <div class="field full hidden" id="stockSaleField"><label class="stock-purchase-option"><input id="stockSale" type="checkbox" style="width:auto;margin-right:7px"> Barang terjual mengurangi persediaan</label><div class="panel-sub">Pemasukan dan pengurangan stok akan tercatat dalam transaksi yang sama.</div></div>
         <div class="field full hidden" id="roastInputNameField"><label for="roastInputName">Bahan yang digunakan *</label><input id="roastInputName" list="roastStockOptions" placeholder="Pilih atau ketik nama bahan"><datalist id="roastStockOptions"></datalist><div id="roastStockHint" class="panel-sub">Pilih bahan dan satuan yang sama dengan stok.</div></div>
@@ -1057,23 +1057,25 @@ function setType(type){
  fields.qty.hidden=isModal;
  fields.unit.hidden=isModal;
  fields.unitPrice.hidden=isModal||isStock||isRoast;
- fields.amount.hidden=isRoast;
+ fields.amount.hidden=false;
  $('amount').required=!isRoast;
  if(isRoast)$('amount').value='0';
+ $('amount').closest('.field').querySelector('label').textContent=isRoast?'Biaya roasting (Rp)':'Total nilai (Rp) *';
+ $('amountHint').classList.toggle('hidden',!isRoast);
  $('amount').placeholder=isStock?'Nilai barang (opsional, isi 0 jika belum diketahui)':'0';
  $('name').previousElementSibling.textContent=isModal?'Nama sumber modal / keterangan *':isStock?'Nama barang *':isRoast?'Nama hasil roasting *':type==='expense'?'Nama barang / keperluan *':'Nama barang / sumber pemasukan *';
  $('name').placeholder=isModal?'Contoh: Modal awal pemilik atau pinjaman bank':isStock?'Contoh: Roasted beans Merapi Natural':isRoast?'Contoh: Roasted Beans Merapi':'Contoh: '+(type==='expense'?'Pembelian kemasan 100 gram':'Penjualan roasted beans');
  $('qty').closest('.field').querySelector('label').textContent=isRoast?'Jumlah hasil roasting *':'Jumlah / kuantitas';
  $('unit').closest('.field').querySelector('label').textContent=isRoast?'Satuan hasil roasting':'Satuan';
- $('party').previousElementSibling.textContent=isModal?'Sumber modal / pemberi dana':type==='income'?'Pelanggan / sumber pemasukan':type==='expense'?'Supplier / penerima pembayaran':type==='stockin'?'Supplier / asal barang':'Tujuan / penerima barang';
+ $('party').previousElementSibling.textContent=isModal?'Sumber modal / pemberi dana':type==='income'?'Pelanggan / sumber pemasukan':type==='expense'?'Supplier / penerima pembayaran':type==='stockin'?'Supplier / asal barang':isRoast?'Penerima biaya roasting':'Tujuan / penerima barang';
  $('qty').placeholder=isStock?'Jumlah barang':'Jumlah';
  $('unitPrice').disabled=isModal||isStock;
  $('unitPrice').placeholder=isModal||isStock?'Tidak diperlukan':'0';
  $('payment').disabled=isStock;
  $('account').disabled=isStock;
- fields.party.hidden=isRoast;
- fields.payment.hidden=isRoast;
- fields.account.hidden=isRoast;
+ fields.party.hidden=false;
+ fields.payment.hidden=false;
+ fields.account.hidden=false;
  $('stockPurchaseField').classList.toggle('hidden',type!=='expense');
  $('stockSaleField').classList.toggle('hidden',type!=='income');
  ['roastInputNameField','roastInputQtyField','roastInputUnitField'].forEach(id=>$(id).classList.toggle('hidden',!isRoast));
@@ -1083,23 +1085,25 @@ function setType(type){
  }
  $('payment').closest('.field').querySelector('label').textContent=isModal?'Metode penerimaan modal':'Metode pembayaran';
  $('account').closest('.field').querySelector('label').textContent='Kas / rekening';
+ $('party').placeholder=isRoast?'Nama roaster / penerima biaya':type==='expense'?'Nama supplier / penerima pembayaran':'Nama supplier, investor, atau pelanggan';
 }
 function login(user){currentUser=user;$('loginView').classList.add('hidden');$('appView').classList.remove('hidden');const name=displayName(user);$('userName').textContent=name;$('userAvatar').textContent=name.trim()[0].toUpperCase();$('dropdownUserName').textContent=name;$('dropdownAvatar').textContent=name.trim()[0].toUpperCase();$('profileUsername').textContent='Email: '+(user.email||'');renderAll()}
 async function logout(){if(supabaseClient)await supabaseClient.auth.signOut();currentUser=null;cloudReady=false;if(cloudChannel){await supabaseClient.removeChannel(cloudChannel);cloudChannel=null}records=[];cloudSnapshot.clear();$('appView').classList.add('hidden');$('loginView').classList.remove('hidden');$('loginPass').value='';$('loginUser').value=''}
 function filteredRecords(){const q=$('search').value.trim().toLowerCase(),type=$('filterType').value,month=$('filterMonth').value;return records.filter(r=>(!q||[r.name,r.category,r.party,r.reference,r.notes,r.account,r.createdBy].join(' ').toLowerCase().includes(q))&&(!type||r.type===type)&&(!month||r.date?.startsWith(month))).sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time))}
-function cashStats(){const total=t=>records.filter(r=>r.type===t).reduce((s,r)=>s+num(r.amount),0);const capital=total('modal'),income=total('income'),expense=total('expense');return{capital,income,expense,net:capital+income-expense}}
+function cashStats(){const total=t=>records.filter(r=>r.type===t).reduce((s,r)=>s+num(r.amount),0);const capital=total('modal'),income=total('income'),expense=total('expense')+total('roast');return{capital,income,expense,net:capital+income-expense}}
 function renderStats(){const s=cashStats();$('heroBalance').textContent=rupiah(s.net);$('statCapital').textContent=rupiah(s.capital);$('statIncome').textContent=rupiah(s.income);$('statExpense').textContent=rupiah(s.expense);$('statCount').textContent=records.length.toLocaleString('id-ID');$('sideCapital').textContent=rupiah(s.capital);$('sideIncome').textContent=rupiah(s.income);$('sideExpense').textContent=rupiah(s.expense);$('sideNet').textContent=rupiah(s.net);$('sideNet').className='amount '+(s.net<0?'red':'green');$('reportCapital').textContent=rupiah(s.capital);$('reportIncome').textContent=rupiah(s.income);$('reportExpense').textContent=rupiah(s.expense);$('reportNet').textContent=rupiah(s.net);$('reportNet').className=s.net<0?'red':'green'}
 function renderRows(){
  const rows=filteredRecords();
  $('transactionRows').innerHTML=rows.length?rows.map(r=>{
   const detail=r.type==='roast'?`<br><span class="muted">Bahan: ${safe(r.inputName)} · ${num(r.inputQty).toLocaleString('id-ID')} ${safe(r.inputUnit||'')}</span>`:'';
   const stockNote=r.type==='expense'&&r.stockPurchase?'<br><span class="muted">Barang masuk ke stok</span>':r.type==='income'&&r.stockSale?'<br><span class="muted">Barang keluar dari stok</span>':'';
-  const tagClass=['modal','income','stockin'].includes(r.type)?'in':['stockout','roast'].includes(r.type)?'stock':'out';
-  return `<tr><td>${safe(r.date)}<br><span class="muted">${safe(r.time||'—')}</span></td><td><span class="tag ${tagClass}">${safe(TYPE_LABEL[r.type]||r.type)}</span></td><td><strong>${safe(r.name)}</strong><br><span class="muted">${safe(r.category)}${r.party?' · '+safe(r.party):''}</span>${detail}${stockNote}${r.reference?'<br><span class="muted">Ref: '+safe(r.reference)+'</span>':''}</td><td>${num(r.qty).toLocaleString('id-ID')} ${safe(r.unit||'')}</td><td>${rupiah(r.unitPrice)}</td><td><strong>${rupiah(r.amount)}</strong></td><td>${safe(r.createdBy||'—')}</td><td><div class="row-actions"><button class="soft" data-edit="${safe(r.id)}">Edit</button><button class="danger" data-delete="${safe(r.id)}">Hapus</button></div></td></tr>`
+  const tagClass=['modal','income','stockin'].includes(r.type)?'in':r.type==='roast'?'stock':r.type==='stockout'?'stock':'out';
+  const roastCost=r.type==='roast'&&num(r.amount)>0?`<br><span class="muted">Biaya roasting: ${rupiah(r.amount)}</span>`:'';
+  return `<tr><td>${safe(r.date)}<br><span class="muted">${safe(r.time||'—')}</span></td><td><span class="tag ${tagClass}">${safe(TYPE_LABEL[r.type]||r.type)}</span></td><td><strong>${safe(r.name)}</strong><br><span class="muted">${safe(r.category)}${r.party?' · '+safe(r.party):''}</span>${detail}${roastCost}${stockNote}${r.reference?'<br><span class="muted">Ref: '+safe(r.reference)+'</span>':''}</td><td>${num(r.qty).toLocaleString('id-ID')} ${safe(r.unit||'')}</td><td>${rupiah(r.unitPrice)}</td><td><strong>${rupiah(r.amount)}</strong></td><td>${safe(r.createdBy||'—')}</td><td><div class="row-actions"><button class="soft" data-edit="${safe(r.id)}">Edit</button><button class="danger" data-delete="${safe(r.id)}">Hapus</button></div></td></tr>`
  }).join(''):'<tr><td colspan="8" class="empty">Belum ada transaksi yang sesuai filter.</td></tr>';
  $('tableSummary').textContent=`Menampilkan ${rows.length} dari ${records.length} transaksi · Total nilai tampilan: ${rupiah(rows.reduce((s,r)=>s+num(r.amount),0))}`;
 }
-function renderRecent(){const rows=[...records].sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time)).slice(0,5);$('recentList').innerHTML=rows.length?rows.map(r=>`<div class="mini-row"><div><strong>${safe(r.name)}</strong><small>${safe(r.date)} · ${safe(TYPE_LABEL[r.type])}</small></div><div class="amount ${['modal','income','stockin'].includes(r.type)?'green':['stockout','roast'].includes(r.type)?'':'red'}">${rupiah(r.amount)}</div></div>`).join(''):'<div class="empty">Belum ada transaksi.</div>'}
+function renderRecent(){const rows=[...records].sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time)).slice(0,5);$('recentList').innerHTML=rows.length?rows.map(r=>`<div class="mini-row"><div><strong>${safe(r.name)}</strong><small>${safe(r.date)} · ${safe(TYPE_LABEL[r.type])}</small></div><div class="amount ${['modal','income','stockin'].includes(r.type)?'green':r.type==='roast'&&!num(r.amount)?'':'red'}">${rupiah(r.amount)}</div></div>`).join(''):'<div class="empty">Belum ada transaksi.</div>'}
 function inventoryMovements(r){
  if(r.type==='stockin')return[{name:r.name,unit:r.unit,qty:num(r.qty),valueIn:num(r.amount),valueOut:0}];
  if(r.type==='stockout')return[{name:r.name,unit:r.unit,qty:-num(r.qty),valueIn:0,valueOut:num(r.amount)}];
@@ -1151,7 +1155,7 @@ function selectRoastInput(name){
  $('unit').value=match.unit;
 }
 function renderStock(){const list=Object.values(inventoryBalances()).sort((a,b)=>a.name.localeCompare(b.name)||a.unit.localeCompare(b.unit));$('stockGrid').innerHTML=list.length?list.map(x=>`<div class="stock-card"><strong>${safe(x.name)}</strong><div class="qty ${x.qty<0?'red':''}">${x.qty.toLocaleString('id-ID')} ${safe(x.unit)}</div><small>Nilai masuk: ${rupiah(x.valueIn)}</small><br><small>Nilai keluar: ${rupiah(x.valueOut)}</small></div>`).join(''):'<div class="empty">Belum ada pergerakan stok.</div>'}
-function renderChart(){const d=new Date(),months=[];for(let i=5;i>=0;i--){const dt=new Date(d.getFullYear(),d.getMonth()-i,1);const key=`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`;months.push({key,label:dt.toLocaleDateString('id-ID',{month:'short'})})}const vals=months.map(m=>({ ...m,inc:records.filter(r=>r.date?.startsWith(m.key)&&['modal','income'].includes(r.type)).reduce((s,r)=>s+num(r.amount),0),out:records.filter(r=>r.date?.startsWith(m.key)&&r.type==='expense').reduce((s,r)=>s+num(r.amount),0)}));const max=Math.max(1,...vals.flatMap(v=>[v.inc,v.out]));$('cashChart').innerHTML=vals.map(v=>`<div class="bar-col"><span>${v.inc?Math.round(v.inc/1000)+'k':'—'}</span><div class="bar" title="Modal + pemasukan: ${rupiah(v.inc)}" style="height:${Math.max(3,v.inc/max*80)}%"></div><div class="bar" title="Pengeluaran: ${rupiah(v.out)}" style="height:${Math.max(3,v.out/max*80)}%;background:linear-gradient(180deg,#d5a58a,#9b7059)"></div><small>${safe(v.label)}</small></div>`).join('')}
+function renderChart(){const d=new Date(),months=[];for(let i=5;i>=0;i--){const dt=new Date(d.getFullYear(),d.getMonth()-i,1);const key=`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`;months.push({key,label:dt.toLocaleDateString('id-ID',{month:'short'})})}const vals=months.map(m=>({ ...m,inc:records.filter(r=>r.date?.startsWith(m.key)&&['modal','income'].includes(r.type)).reduce((s,r)=>s+num(r.amount),0),out:records.filter(r=>r.date?.startsWith(m.key)&&['expense','roast'].includes(r.type)).reduce((s,r)=>s+num(r.amount),0)}));const max=Math.max(1,...vals.flatMap(v=>[v.inc,v.out]));$('cashChart').innerHTML=vals.map(v=>`<div class="bar-col"><span>${v.inc?Math.round(v.inc/1000)+'k':'—'}</span><div class="bar" title="Modal + pemasukan: ${rupiah(v.inc)}" style="height:${Math.max(3,v.inc/max*80)}%"></div><div class="bar" title="Pengeluaran: ${rupiah(v.out)}" style="height:${Math.max(3,v.out/max*80)}%;background:linear-gradient(180deg,#d5a58a,#9b7059)"></div><small>${safe(v.label)}</small></div>`).join('')}
 function renderMonthFilter(){const old=$('filterMonth').value,months=[...new Set(records.map(r=>r.date?.slice(0,7)).filter(Boolean))].sort().reverse();$('filterMonth').innerHTML='<option value="">Semua bulan</option>'+months.map(m=>`<option value="${m}">${new Date(m+'-01T00:00:00').toLocaleDateString('id-ID',{month:'long',year:'numeric'})}</option>`).join('');if(months.includes(old))$('filterMonth').value=old}
 function renderAll(){renderStats();renderMonthFilter();renderRows();renderRecent();renderStock();renderChart()}
 function clearForm(){ $('transactionForm').reset();$('editId').value='';$('date').value=today();$('time').value=new Date().toTimeString().slice(0,5);$('qty').value='1';$('formTitle').textContent='Tambah transaksi';$('modalTitle').textContent='Tambah transaksi';$('saveBtn').textContent='Simpan transaksi';$('cancelEdit').classList.add('hidden');setType(activeType)}
@@ -1186,7 +1190,7 @@ async function deleteRecord(id){const r=records.find(x=>x.id===id);if(!r)return;
 function exportExcel(data=records,filtered=false){
  if(!window.XLSX){toast('Library Excel gagal dimuat. Periksa koneksi internet.');return}
  const sorted=[...data].sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
- const detail=sorted.map(r=>({'Tanggal':r.date,'Jam':r.time,'Jenis':TYPE_LABEL[r.type]||r.type,'Kategori':r.category,'Nama Barang / Transaksi':r.name,'Kuantitas':num(r.qty),'Satuan':r.unit,'Bahan Roasting':r.inputName||'','Bahan Digunakan':num(r.inputQty),'Satuan Bahan':r.inputUnit||'','Masuk Stok':r.stockPurchase?'Ya':'','Keluar Stok':r.stockSale?'Ya':'','Harga Satuan (Rp)':num(r.unitPrice),'Total (Rp)':num(r.amount),'Metode Pembayaran':r.payment,'Supplier / Sumber / Penerima':r.party,'No. Nota / Referensi':r.reference,'Kas / Rekening':r.account,'Catatan':r.notes,'Dicatat Oleh':r.createdBy,'Terakhir Diedit Oleh':r.updatedBy||r.createdBy,'Waktu Dibuat':r.createdAt,'Waktu Diedit':r.updatedAt||''}));
+ const detail=sorted.map(r=>({'Tanggal':r.date,'Jam':r.time,'Jenis':TYPE_LABEL[r.type]||r.type,'Kategori':r.category,'Nama Barang / Transaksi':r.name,'Kuantitas':num(r.qty),'Satuan':r.unit,'Bahan Roasting':r.inputName||'','Bahan Digunakan':num(r.inputQty),'Satuan Bahan':r.inputUnit||'','Masuk Stok':r.stockPurchase?'Ya':'','Keluar Stok':r.stockSale?'Ya':'','Biaya Roasting (Rp)':r.type==='roast'?num(r.amount):0,'Harga Satuan (Rp)':num(r.unitPrice),'Total (Rp)':num(r.amount),'Metode Pembayaran':r.payment,'Supplier / Sumber / Penerima':r.party,'No. Nota / Referensi':r.reference,'Kas / Rekening':r.account,'Catatan':r.notes,'Dicatat Oleh':r.createdBy,'Terakhir Diedit Oleh':r.updatedBy||r.createdBy,'Waktu Dibuat':r.createdAt,'Waktu Diedit':r.updatedAt||''}));
  const sum=cashStats();
  const summary=[{'Ringkasan':'Total modal masuk','Nilai (Rp)':sum.capital},{'Ringkasan':'Total pemasukan','Nilai (Rp)':sum.income},{'Ringkasan':'Total pengeluaran','Nilai (Rp)':sum.expense},{'Ringkasan':'Arus kas bersih','Nilai (Rp)':sum.net},{'Ringkasan':'Jumlah transaksi','Nilai (Rp)':records.length}];
  const wb=XLSX.utils.book_new();
@@ -1360,7 +1364,7 @@ $('transactionForm').addEventListener('submit',async e=>{
  const record={
   id:editId||`${Date.now()}-${Math.random().toString(36).slice(2,8)}`,type,date:$('date').value,time:$('time').value,
   category:$('category').value,name:$('name').value.trim(),qty:num($('qty').value),unit:$('unit').value,
-  unitPrice:num($('unitPrice').value),amount:type==='roast'?0:amount,payment:$('payment').value,party:$('party').value.trim(),
+  unitPrice:num($('unitPrice').value),amount,payment:$('payment').value,party:$('party').value.trim(),
   reference:$('reference').value.trim(),account:$('account').value,notes:$('notes').value.trim(),
   stockPurchase:type==='expense'&&$('stockPurchase').checked,stockSale:type==='income'&&$('stockSale').checked,inputName:$('roastInputName').value.trim(),
   inputQty:num($('roastInputQty').value),inputUnit:$('roastInputUnit').value,
