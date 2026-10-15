@@ -286,6 +286,23 @@ body.dark-mode .nav-add>span{border-color:#241f1c}
 .category-type-picker label{font-size:12px;color:var(--muted);font-weight:600}
 .category-type-picker select{max-width:240px;flex:1}
 .settings-items{display:grid;gap:8px}
+.audit-heading{align-items:flex-start;margin:24px 0 8px;padding-top:20px;border-top:1px solid var(--line)}
+.audit-heading .ghost{flex:0 0 auto;padding:9px 12px;font-size:11px}
+.audit-status{margin:8px 0}
+.audit-list{display:grid;gap:10px}
+.audit-entry{border:1px solid var(--line);border-radius:14px;background:var(--surface,#fff);padding:13px}
+.audit-entry-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.audit-entry h3{margin:0;font-size:13px;overflow-wrap:anywhere}
+.audit-entry-meta{margin:4px 0 0;color:var(--muted);font-size:10px;overflow-wrap:anywhere}
+.audit-entry-action{flex:0 0 auto}
+.audit-changes{display:grid;gap:7px;margin:11px 0 0;padding:10px 0 0;border-top:1px solid var(--line)}
+.audit-change{display:grid;grid-template-columns:minmax(90px,.35fr) minmax(0,1fr);gap:10px;font-size:11px}
+.audit-change dt{color:var(--muted);font-weight:600}
+.audit-change dd{margin:0;overflow-wrap:anywhere;white-space:pre-wrap}
+.audit-empty{padding:22px;text-align:center;color:var(--muted);font-size:12px}
+.audit-details{margin-top:9px;font-size:11px}
+.audit-details summary{cursor:pointer;color:var(--muted);font-weight:600}
+body.dark-mode .audit-entry{background:var(--surface)}
 .settings-item{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 12px;border:1px solid var(--line);border-radius:13px;background:var(--surface,#fff)}
 .settings-item-name{min-width:0;overflow-wrap:anywhere;font-size:13px;font-weight:550}
 .settings-item-actions{display:flex;gap:6px;flex:0 0 auto}
@@ -839,7 +856,11 @@ body.dark-mode .reconfirm-icon{background:#493123;color:#ffc18d}
         <div id="settingsItems" class="settings-items"></div>
         <div class="settings-empty hidden" id="settingsEmpty">Belum ada data. Tambahkan pilihan baru.</div>
       </div>
-      <div class="notice settings-notice"><i class="fa-solid fa-circle-info"></i> Data master tersimpan di browser/perangkat ini. Jika aplikasi dibuka di perangkat lain, daftar ini tidak otomatis tersinkronisasi.</div>
+      <div class="notice settings-notice"><i class="fa-solid fa-circle-info"></i> Data master tersimpan bersama di cloud dan digunakan pada transaksi berikutnya.</div>
+      <div class="panel-head audit-heading"><div><h2><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i> Audit aktivitas</h2><div class="panel-sub">Lihat siapa yang membuat, mengubah, atau menghapus transaksi dan data master, beserta rincian perubahannya.</div></div><button type="button" class="ghost" id="refreshAuditBtn"><i class="fa-solid fa-rotate" aria-hidden="true"></i> Muat ulang</button></div>
+      <p class="panel-sub audit-status" id="auditStatus" role="status">Buka Pengaturan untuk memuat riwayat.</p>
+      <div id="auditSetupNotice" class="notice hidden" role="alert"></div>
+      <div id="auditList" class="audit-list" aria-live="polite"></div>
     </section>
   </section>
 
@@ -1001,7 +1022,47 @@ function loadMasterData(){
   masterData=normalizeMasterData(JSON.parse(localStorage.getItem(MASTER_KEY)||'null'));
  }catch(e){masterData=normalizeMasterData(null)}
 }
-async function saveMasterData(){try{localStorage.setItem(MASTER_KEY,JSON.stringify(masterData));if(cloudReady)await saveCloudMasterData();return true}catch(e){toast('Gagal menyimpan data master ke cloud: '+(e.message||''));return false}}
+async function saveMasterData(){try{localStorage.setItem(MASTER_KEY,JSON.stringify(masterData));if(cloudReady){await saveCloudMasterData();await loadAuditLogs()}return true}catch(e){toast('Gagal menyimpan data master ke cloud: '+(e.message||''));return false}}
+function renderAuditLogs(logs){
+ const list=$('auditList');list.replaceChildren();
+ if(!logs.length){const empty=document.createElement('div');empty.className='audit-empty';empty.textContent='Belum ada aktivitas yang tercatat.';list.append(empty);return}
+ const fieldLabels={date:'Tanggal',time:'Jam',type:'Jenis transaksi',category:'Kategori',name:'Nama',qty:'Jumlah',unit:'Satuan',unitPrice:'Harga satuan',amount:'Total',payment:'Metode pembayaran',party:'Pihak terkait',reference:'Referensi',account:'Kas / rekening',notes:'Catatan',createdBy:'Dibuat oleh',updatedBy:'Terakhir diedit oleh',createdAt:'Waktu dibuat',updatedAt:'Waktu diedit',stockPurchase:'Pembelian stok',stockSale:'Penjualan stok',inputName:'Bahan roasting',inputQty:'Jumlah bahan',inputUnit:'Satuan bahan',payments:'Metode pembayaran',accounts:'Kas / rekening',units:'Satuan barang',categories:'Kategori'};
+ const actionLabels={INSERT:'Membuat',UPDATE:'Mengubah',DELETE:'Menghapus'};
+ const dateFormat=new Intl.DateTimeFormat('id-ID',{dateStyle:'medium',timeStyle:'short'});
+ const formatValue=value=>value===null||value===undefined||value===''?'—':typeof value==='object'?JSON.stringify(value,null,2):typeof value==='boolean'?value?'Ya':'Tidak':String(value);
+ logs.forEach(log=>{
+  const oldData=log.old_data||{},newData=log.new_data||{};
+  const snapshot=log.action==='DELETE'?oldData:newData;
+  const recordName=log.table_name==='cashflow_transactions'?(snapshot.name||log.record_id):'Data master';
+  const article=document.createElement('article');article.className='audit-entry';
+  const heading=document.createElement('div');heading.className='audit-entry-head';
+  const headingCopy=document.createElement('div');
+  const title=document.createElement('h3');title.textContent=`${actionLabels[log.action]||log.action} ${recordName}`;
+  const timestamp=new Date(log.changed_at);
+  const when=Number.isNaN(timestamp.getTime())?log.changed_at:dateFormat.format(timestamp);
+  const meta=document.createElement('p');meta.className='audit-entry-meta';meta.textContent=`${log.actor_name||log.actor_email||log.actor_id||'Pengguna tidak diketahui'} · ${when}`;
+  headingCopy.append(title,meta);heading.append(headingCopy);
+  const badge=document.createElement('span');badge.className='tag '+(log.action==='DELETE'?'out':log.action==='INSERT'?'in':'stock');badge.textContent=actionLabels[log.action]||log.action;badge.setAttribute('aria-label','Jenis aktivitas');heading.append(badge);article.append(heading);
+  const keys=[...new Set([...Object.keys(oldData),...Object.keys(newData)])].filter(key=>key!=='id'&&key!=='updated_by'&&key!=='workspace_id'&&key!=='updated_at').filter(key=>log.action!=='UPDATE'||JSON.stringify(oldData[key])!==JSON.stringify(newData[key]));
+  if(keys.length){
+   const details=document.createElement('details');details.className='audit-details';
+   const summary=document.createElement('summary');summary.textContent=`Lihat rincian (${keys.length} perubahan)`;details.append(summary);
+   const changes=document.createElement('dl');changes.className='audit-changes';
+   keys.forEach(key=>{const row=document.createElement('div');row.className='audit-change';const label=document.createElement('dt');label.textContent=fieldLabels[key]||key;const value=document.createElement('dd');value.textContent=log.action==='UPDATE'?`${formatValue(oldData[key])} → ${formatValue(newData[key])}`:formatValue(snapshot[key]);row.append(label,value);changes.append(row)});
+   details.append(changes);article.append(details);
+  }
+  list.append(article);
+ });
+}
+async function loadAuditLogs(){
+ const status=$('auditStatus'),notice=$('auditSetupNotice');
+ notice.classList.add('hidden');
+ if(!cloudReady||!supabaseClient){status.textContent='Audit aktivitas hanya tersedia saat terhubung ke cloud.';return}
+ status.textContent='Memuat riwayat aktivitas…';
+ const {data,error}=await supabaseClient.from('cashflow_audit_logs').select('id,workspace_id,table_name,record_id,action,actor_id,actor_email,actor_name,changed_at,old_data,new_data').eq('workspace_id',WORKSPACE_ID).order('changed_at',{ascending:false}).limit(100);
+ if(error){status.textContent='Riwayat audit gagal dimuat.';notice.textContent=`Pastikan file supabase-audit.sql sudah dijalankan di Supabase SQL Editor. Detail: ${error.message}`;notice.classList.remove('hidden');return}
+ renderAuditLogs(data||[]);status.textContent=`${(data||[]).length} aktivitas terbaru ditampilkan.`;
+}
 function syncMasterSelects(){
  const fill=(id,items,keep=true)=>{const el=$(id);if(!el)return;const old=el.value;el.innerHTML=items.map(v=>`<option value="${safe(v)}">${safe(v)}</option>`).join('');if(keep&&items.includes(old))el.value=old;};
  fill('unit',masterData.units);
@@ -1246,7 +1307,7 @@ function startEdit(id){
  if(r.type==='roast'){syncRoastStockOptions(r.id);addSelectOption($('roastInputUnit'),r.inputUnit);addSelectOption($('unit'),r.unit)}
  $('formTitle').textContent='Edit transaksi';$('modalTitle').textContent='Edit transaksi';$('saveBtn').textContent='Simpan perubahan';$('cancelEdit').classList.remove('hidden');openTransactionModal();
 }
-async function deleteRecord(id){const r=records.find(x=>x.id===id);if(!r)return;const ok=await reconfirm(`Hapus transaksi "${r.name}" tanggal ${r.date}? Tindakan ini tidak bisa dibatalkan.`,{title:'Hapus transaksi?',okText:'Ya, hapus',danger:true});if(!ok)return;try{const previous=records;records=records.filter(x=>x.id!==id);await persist();saveRecords();toast('Berhasil: transaksi dihapus.')}catch(err){toast('Gagal menghapus transaksi di cloud. Muat ulang data dan coba lagi.');await refreshCloudData().catch(()=>{})}}
+async function deleteRecord(id){const r=records.find(x=>x.id===id);if(!r)return;const ok=await reconfirm(`Hapus transaksi "${r.name}" tanggal ${r.date}? Tindakan ini tidak bisa dibatalkan.`,{title:'Hapus transaksi?',okText:'Ya, hapus',danger:true});if(!ok)return;try{const previous=records;records=records.filter(x=>x.id!==id);await persist();saveRecords();await loadAuditLogs();toast('Berhasil: transaksi dihapus.')}catch(err){toast('Gagal menghapus transaksi di cloud. Muat ulang data dan coba lagi.');await refreshCloudData().catch(()=>{})}}
 function exportExcel(data=records,filtered=false){
  if(!window.XLSX){toast('Library Excel gagal dimuat. Periksa koneksi internet.');return}
  const sorted=[...data].sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
@@ -1387,7 +1448,8 @@ $('themeToggle').addEventListener('click',()=>{const dark=document.body.classLis
 try{if(localStorage.getItem('suwanting_theme')==='dark'){$('themeToggle').click()}}catch(e){}
 
 $('transactionModalContent').appendChild($('entryPanel'));$('entryPanel').classList.remove('hidden');
-document.querySelectorAll('.nav-tab').forEach(btn=>btn.addEventListener('click',()=>{document.querySelectorAll('.nav-tab').forEach(b=>b.classList.toggle('active',b===btn));document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id==='page-'+btn.dataset.page));}));
+document.querySelectorAll('.nav-tab').forEach(btn=>btn.addEventListener('click',()=>{document.querySelectorAll('.nav-tab').forEach(b=>b.classList.toggle('active',b===btn));document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id==='page-'+btn.dataset.page));if(btn.dataset.page==='settings')loadAuditLogs()}));
+$('refreshAuditBtn').addEventListener('click',loadAuditLogs);
 document.querySelectorAll('[data-go-page]').forEach(btn=>btn.addEventListener('click',()=>document.querySelector(`[data-page="${btn.dataset.goPage}"]`).click()));
 document.querySelectorAll('[data-open-entry]').forEach(btn=>btn.addEventListener('click',()=>openEntry('modal')));
 document.querySelectorAll('[data-open-stock]').forEach(btn=>btn.addEventListener('click',()=>openEntry('stockin')));
@@ -1462,7 +1524,7 @@ $('transactionForm').addEventListener('submit',async e=>{
  const previousRecords=records;
  if(old)records=records.map(r=>r.id===editId?record:r);else records=[...records,record];
  try{
-  await persist();saveRecords();clearForm();closeTransactionModal();
+  await persist();saveRecords();await loadAuditLogs();clearForm();closeTransactionModal();
   toast(old?'Perubahan transaksi disimpan.':'Transaksi berhasil disimpan.');
  }catch(err){
   records=previousRecords;
@@ -1484,7 +1546,7 @@ async function refreshCloudData(){if(!supabaseClient||!currentUser)return;const 
  supabaseClient.from('cashflow_workspace_settings').select('master_data').eq('workspace_id',WORKSPACE_ID).maybeSingle()
 ]);if(txErr)throw txErr;if(settingsErr)throw settingsErr;suppressCloudWrites=true;records=(tx||[]).map(x=>({...x.data,id:String(x.id)}));cloudSnapshot=new Map(records.map(r=>[String(r.id),r]));if(settings?.master_data && Object.keys(settings.master_data).length && settings.master_data.categories){masterData=normalizeMasterData(settings.master_data);try{localStorage.setItem(MASTER_KEY,JSON.stringify(masterData))}catch(e){}}try{localStorage.setItem(STORAGE_KEY,JSON.stringify(records))}catch(e){}suppressCloudWrites=false;syncMasterSelects();renderSettings();renderAll();cloudReady=true}
 async function activateSession(session){if(!session?.user)return;currentUser=session.user;cloudReady=false;login(currentUser);$('cloudStatus').textContent='Terhubung ke Supabase. Memuat data bersama…';try{await refreshCloudData();login(currentUser);if(cloudChannel)await supabaseClient.removeChannel(cloudChannel);cloudChannel=supabaseClient.channel('suwanting-cashflow-'+WORKSPACE_ID).on('postgres_changes',{event:'*',schema:'public',table:'cashflow_transactions',filter:'workspace_id=eq.'+WORKSPACE_ID},async()=>{try{await refreshCloudData()}catch(e){toast('Gagal menyegarkan data cloud.')}}).on('postgres_changes',{event:'*',schema:'public',table:'cashflow_workspace_settings',filter:'workspace_id=eq.'+WORKSPACE_ID},async()=>{try{await refreshCloudData()}catch(e){}}).subscribe();$('cloudStatus').textContent='Cloud aktif. Data dibagikan dengan anggota workspace.';document.querySelector('[data-page="dashboard"]').click();if(records.length===0&&loadLocalRecords().length>0)toast('Ada data lokal di perangkat ini. Buat backup lalu gunakan Migrasikan data lokal ke cloud.');}catch(err){cloudReady=false;$('cloudStatus').textContent='Gagal memuat cloud: '+(err.message||'periksa SQL/RLS dan anggota workspace');throw err}}
-async function migrateLocalToCloud(){if(!currentUser||!supabaseClient){toast('Login ke Supabase terlebih dahulu.');return}const local=localBackupData();if(!local.records.length&&!local.masterData){toast('Tidak ditemukan data lokal untuk dimigrasikan.');return}const {data:existing,error}=await supabaseClient.from('cashflow_transactions').select('id').eq('workspace_id',WORKSPACE_ID).limit(1);if(error)throw error;if(existing?.length){const ok=await reconfirm('Workspace cloud sudah memiliki transaksi. Migrasi ini dapat menggabungkan atau menimpa transaksi dengan ID sama. Lanjutkan?',{title:'Workspace tidak kosong',okText:'Lanjutkan migrasi',danger:true});if(!ok)return}const ok=await reconfirm('Salin '+local.records.length+' transaksi lokal dan data master ke cloud? Data lokal tetap tersimpan, tetapi data master cloud akan diganti.',{title:'Konfirmasi migrasi',okText:'Salin ke cloud'});if(!ok)return;const rows=local.records.map(r=>({id:String(r.id),workspace_id:WORKSPACE_ID,data:r,updated_by:currentUser.id}));if(rows.length){const {error:upErr}=await supabaseClient.from('cashflow_transactions').upsert(rows,{onConflict:'id'});if(upErr)throw upErr}await saveCloudMasterDataFrom(local.masterData);await refreshCloudData();toast('Migrasi selesai. Data lokal tetap tersimpan di perangkat ini.')}
+async function migrateLocalToCloud(){if(!currentUser||!supabaseClient){toast('Login ke Supabase terlebih dahulu.');return}const local=localBackupData();if(!local.records.length&&!local.masterData){toast('Tidak ditemukan data lokal untuk dimigrasikan.');return}const {data:existing,error}=await supabaseClient.from('cashflow_transactions').select('id').eq('workspace_id',WORKSPACE_ID).limit(1);if(error)throw error;if(existing?.length){const ok=await reconfirm('Workspace cloud sudah memiliki transaksi. Migrasi ini dapat menggabungkan atau menimpa transaksi dengan ID sama. Lanjutkan?',{title:'Workspace tidak kosong',okText:'Lanjutkan migrasi',danger:true});if(!ok)return}const ok=await reconfirm('Salin '+local.records.length+' transaksi lokal dan data master ke cloud? Data lokal tetap tersimpan, tetapi data master cloud akan diganti.',{title:'Konfirmasi migrasi',okText:'Salin ke cloud'});if(!ok)return;const rows=local.records.map(r=>({id:String(r.id),workspace_id:WORKSPACE_ID,data:r,updated_by:currentUser.id}));if(rows.length){const {error:upErr}=await supabaseClient.from('cashflow_transactions').upsert(rows,{onConflict:'id'});if(upErr)throw upErr}await saveCloudMasterDataFrom(local.masterData);await refreshCloudData();await loadAuditLogs();toast('Migrasi selesai. Data lokal tetap tersimpan di perangkat ini.')}
 async function saveCloudMasterDataFrom(data){const {error}=await supabaseClient.from('cashflow_workspace_settings').upsert({workspace_id:WORKSPACE_ID,master_data:data,updated_by:currentUser.id,updated_at:new Date().toISOString()},{onConflict:'workspace_id'});if(error)throw error}
 $('migrateLocalBtn').addEventListener('click',async()=>{try{await migrateLocalToCloud()}catch(err){toast('Migrasi gagal: '+(err.message||'periksa konfigurasi/RLS'))}});
 if(SUPABASE_CONFIGURED&&window.supabase?.createClient){supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);$('cloudStatus').textContent='Konfigurasi tersedia. Masuk dengan akun Supabase.';supabaseClient.auth.getSession().then(async({data,error})=>{if(error){$('cloudStatus').textContent='Tidak dapat memeriksa sesi Supabase.';return}if(data.session){try{await activateSession(data.session)}catch(e){toast('Sesi ada, tetapi data cloud belum bisa dimuat.')}}});supabaseClient.auth.onAuthStateChange((event,session)=>{if(event==='SIGNED_OUT'){currentUser=null;cloudReady=false;$('appView').classList.add('hidden');$('loginView').classList.remove('hidden')}else if(event==='SIGNED_IN'&&session&&!currentUser){setTimeout(()=>activateSession(session).catch(e=>toast('Gagal memuat data cloud.')),0)}})}else{$('cloudStatus').textContent='Konfigurasi belum diisi. Isi SUPABASE_URL dan SUPABASE_ANON_KEY di dalam file HTML.'}
