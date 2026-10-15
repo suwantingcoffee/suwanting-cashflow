@@ -772,7 +772,7 @@ body.dark-mode .reconfirm-icon{background:#493123;color:#ffc18d}
       <div class="stat"><div class="stat-top">Total modal masuk <span class="stat-icon">↗</span></div><strong id="statCapital">Rp0</strong><small>Akumulasi sumber modal</small></div>
       <div class="stat"><div class="stat-top">Total pemasukan <span class="stat-icon">＋</span></div><strong id="statIncome" class="green">Rp0</strong><small>Penjualan dan pemasukan lain</small></div>
       <div class="stat"><div class="stat-top">Total pengeluaran <span class="stat-icon">↘</span></div><strong id="statExpense" class="red">Rp0</strong><small>Belanja dan biaya operasional</small></div>
-      <div class="stat"><div class="stat-top">Transaksi tercatat <span class="stat-icon">▤</span></div><strong id="statCount">0</strong><small>Modal, kas, dan barang keluar</small></div>
+      <div class="stat"><div class="stat-top">Transaksi tercatat <span class="stat-icon">▤</span></div><strong id="statCount">0</strong><small>Modal, kas, stok, dan produksi</small></div>
     </section>
     <div class="layout">
       <main>
@@ -796,7 +796,7 @@ body.dark-mode .reconfirm-icon{background:#493123;color:#ffc18d}
       <div class="panel-head"><div><h2>Riwayat transaksi</h2><div class="panel-sub">Cari, filter, edit, atau hapus catatan yang sudah masuk.</div></div><button class="soft" id="exportFilteredBtn">↓ Ekspor hasil filter</button></div>
       <div class="filters">
         <input id="search" placeholder="Cari barang, kategori, supplier...">
-        <select id="filterType"><option value="">Semua jenis</option><option value="modal">Modal masuk</option><option value="income">Pemasukan</option><option value="expense">Pengeluaran</option><option value="stockin">Barang masuk</option><option value="stockout">Barang keluar</option></select>
+        <select id="filterType"><option value="">Semua jenis</option><option value="modal">Modal masuk</option><option value="income">Pemasukan</option><option value="expense">Pengeluaran</option><option value="stockin">Barang masuk</option><option value="stockout">Barang keluar</option><option value="roast">Produksi / roasting</option></select>
         <select id="filterMonth"><option value="">Semua bulan</option></select>
         <button class="ghost" id="clearFilters">Reset</button>
       </div>
@@ -806,8 +806,8 @@ body.dark-mode .reconfirm-icon{background:#493123;color:#ffc18d}
   </section>
 
   <section class="page" id="page-inventory">
-    <div class="page-heading"><div><h2>Persediaan barang</h2><p>Pantau barang masuk, barang keluar, dan saldo kuantitas persediaan.</p></div><button class="primary primary-action" data-open-stock>＋ Catat pergerakan stok</button></div>
-    <section class="panel"><div class="panel-head"><div><h2>Ringkasan stok</h2><div class="panel-sub">Stok akhir dihitung dari barang masuk dikurangi barang keluar.</div></div><button class="ghost" id="inventoryExportBtn">↓ Ekspor Excel</button></div><div id="stockGrid" class="stock-grid"><div class="empty">Belum ada pergerakan stok.</div></div><div class="notice">Catatan: barang masuk/keluar direkap sebagai kuantitas persediaan. Untuk barang keluar yang juga mengurangi kas, catat transaksi pengeluaran secara terpisah agar nilai arus kas akurat dan tidak terhitung ganda.</div></section>
+    <div class="page-heading"><div><h2>Persediaan barang</h2><p>Pantau stok bahan, hasil produksi, dan saldo persediaan.</p></div><div class="form-actions" style="margin:0"><button class="primary primary-action" data-open-stock>＋ Barang masuk</button><button class="soft" type="button" data-open-roast>⚙ Roasting</button></div></div>
+    <section class="panel"><div class="panel-head"><div><h2>Ringkasan stok</h2><div class="panel-sub">Pembelian dapat menambah stok sekaligus mencatat pengeluaran. Roasting memindahkan stok bahan ke produk jadi.</div></div><button class="ghost" id="inventoryExportBtn">↓ Ekspor Excel</button></div><div id="stockGrid" class="stock-grid"><div class="empty">Belum ada pergerakan stok.</div></div><div class="notice">Pembelian stok tercatat satu kali sebagai pengeluaran dan barang masuk. Roasting hanya mencatat pemakaian bahan dan hasil produksi; tidak mengubah saldo kas.</div></section>
   </section>
 
   <section class="page" id="page-settings">
@@ -825,7 +825,7 @@ body.dark-mode .reconfirm-icon{background:#493123;color:#ffc18d}
         <div id="categoryTypePicker" class="category-type-picker">
           <label for="settingsCategoryType">Jenis transaksi</label>
           <select id="settingsCategoryType">
-            <option value="modal">Modal masuk</option><option value="income">Pemasukan</option><option value="expense">Pengeluaran</option><option value="stockin">Barang masuk</option><option value="stockout">Barang keluar</option>
+            <option value="modal">Modal masuk</option><option value="income">Pemasukan</option><option value="expense">Pengeluaran</option><option value="stockin">Barang masuk</option><option value="stockout">Barang keluar</option><option value="roast">Produksi / roasting</option>
           </select>
         </div>
         <div id="settingsItems" class="settings-items"></div>
@@ -865,6 +865,7 @@ body.dark-mode .reconfirm-icon{background:#493123;color:#ffc18d}
           <option value="expense">Pengeluaran</option>
           <option value="stockin">Barang masuk</option>
           <option value="stockout">Barang keluar</option>
+          <option value="roast">Produksi / roasting</option>
         </select>
         <i class="fa-solid fa-chevron-down transaction-type-chevron" aria-hidden="true"></i>
       </div>
@@ -881,6 +882,11 @@ body.dark-mode .reconfirm-icon{background:#493123;color:#ffc18d}
         <div class="field"><label for="unit">Satuan</label><select id="unit"><option>pcs</option><option>kg</option><option>gram</option><option>pack</option><option>box</option><option>liter</option><option>unit</option><option>jam</option><option>lainnya</option></select></div>
         <div class="field"><label for="unitPrice">Harga satuan (Rp)</label><input id="unitPrice" type="number" min="0" step="1" placeholder="0"></div>
         <div class="field"><label for="amount">Total nilai (Rp) *</label><input id="amount" type="number" min="0" step="1" placeholder="0" required></div>
+        <div class="field full hidden" id="stockPurchaseField"><label class="stock-purchase-option"><input id="stockPurchase" type="checkbox" style="width:auto;margin-right:7px"> Barang yang dibeli masuk ke persediaan</label><div class="panel-sub">Nilainya tetap dicatat sebagai pengeluaran; jumlah barang ditambahkan ke stok otomatis.</div></div>
+        <div class="field full hidden" id="stockSaleField"><label class="stock-purchase-option"><input id="stockSale" type="checkbox" style="width:auto;margin-right:7px"> Barang terjual mengurangi persediaan</label><div class="panel-sub">Pemasukan dan pengurangan stok akan tercatat dalam transaksi yang sama.</div></div>
+        <div class="field full hidden" id="roastInputNameField"><label for="roastInputName">Bahan yang digunakan *</label><input id="roastInputName" list="roastStockOptions" placeholder="Pilih atau ketik nama bahan"><datalist id="roastStockOptions"></datalist><div id="roastStockHint" class="panel-sub">Pilih bahan dan satuan yang sama dengan stok.</div></div>
+        <div class="field hidden" id="roastInputQtyField"><label for="roastInputQty">Jumlah bahan digunakan *</label><input id="roastInputQty" type="number" min="0.001" step="0.001" placeholder="0"></div>
+        <div class="field hidden" id="roastInputUnitField"><label for="roastInputUnit">Satuan bahan</label><select id="roastInputUnit"></select></div>
         <div class="field"><label for="payment">Metode pembayaran</label><select id="payment"><option>Tunai</option><option>Transfer bank</option><option>QRIS</option><option>E-wallet</option><option>Kredit / tempo</option><option>Lainnya</option></select></div>
         <div class="field"><label for="party">Supplier / sumber / penerima</label><input id="party" placeholder="Nama supplier, investor, atau pelanggan"></div>
         <div class="field"><label for="reference">No. nota / referensi</label><input id="reference" placeholder="Contoh: INV-2026-001"></div>
@@ -956,7 +962,8 @@ const CATEGORIES={
  expense:['Pembelian bahan baku','Pembelian roasted beans','Peralatan','Kemasan','Operasional','Transportasi','Gaji / tenaga kerja','Sewa','Marketing','Biaya bank','Pembayaran utang','Lainnya'],
  stockin:['Bahan baku','Roasted beans','Kemasan','Peralatan','Produk jadi','Lainnya'],
 
- stockout:['Penjualan','Pemakaian produksi','Sampel / tester','Rusak / hilang','Retur supplier','Lainnya']
+ stockout:['Penjualan','Pemakaian produksi','Sampel / tester','Rusak / hilang','Retur supplier','Lainnya'],
+ roast:['Produksi / roasting']
 };
 const DEFAULT_MASTER={
  payments:['Tunai','Transfer bank','QRIS','E-wallet','Kredit / tempo','Lainnya'],
@@ -964,30 +971,40 @@ const DEFAULT_MASTER={
  units:['pcs','kg','gram','pack','box','liter','ml','botol','sachet','karung']
 };
 let masterData={categories:JSON.parse(JSON.stringify(CATEGORIES)),payments:[...DEFAULT_MASTER.payments],accounts:[...DEFAULT_MASTER.accounts],units:[...DEFAULT_MASTER.units]};
+function normalizeMasterData(saved){
+ const data=saved&&typeof saved==='object'?saved:{};
+ const normalized={
+  categories:{},
+  payments:Array.isArray(data.payments)?data.payments:[...DEFAULT_MASTER.payments],
+  accounts:Array.isArray(data.accounts)?data.accounts:[...DEFAULT_MASTER.accounts],
+  units:Array.isArray(data.units)?data.units:[...DEFAULT_MASTER.units]
+ };
+ Object.keys(CATEGORIES).forEach(type=>{
+  normalized.categories[type]=Array.isArray(data.categories?.[type])?data.categories[type]:[...CATEGORIES[type]];
+ });
+ return normalized;
+}
 function loadMasterData(){
  try{
-  const saved=JSON.parse(localStorage.getItem(MASTER_KEY)||'null');
-  if(saved){
-   masterData={categories:{},payments:Array.isArray(saved.payments)?saved.payments:[...DEFAULT_MASTER.payments],accounts:Array.isArray(saved.accounts)?saved.accounts:[...DEFAULT_MASTER.accounts],units:Array.isArray(saved.units)?saved.units:[...DEFAULT_MASTER.units]};
-   Object.keys(CATEGORIES).forEach(k=>masterData.categories[k]=Array.isArray(saved.categories?.[k])?saved.categories[k]:[...CATEGORIES[k]]);
-  }else masterData.categories=JSON.parse(JSON.stringify(CATEGORIES));
- }catch(e){masterData={categories:JSON.parse(JSON.stringify(CATEGORIES)),payments:[...DEFAULT_MASTER.payments],accounts:[...DEFAULT_MASTER.accounts],units:[...DEFAULT_MASTER.units]}}
+  masterData=normalizeMasterData(JSON.parse(localStorage.getItem(MASTER_KEY)||'null'));
+ }catch(e){masterData=normalizeMasterData(null)}
 }
 async function saveMasterData(){try{localStorage.setItem(MASTER_KEY,JSON.stringify(masterData));if(cloudReady)await saveCloudMasterData();return true}catch(e){toast('Gagal menyimpan data master ke cloud: '+(e.message||''));return false}}
 function syncMasterSelects(){
  const fill=(id,items,keep=true)=>{const el=$(id);if(!el)return;const old=el.value;el.innerHTML=items.map(v=>`<option value="${safe(v)}">${safe(v)}</option>`).join('');if(keep&&items.includes(old))el.value=old;};
  fill('unit',masterData.units);
+ fill('roastInputUnit',masterData.units);
  fill('payment',masterData.payments);
  fill('account',masterData.accounts);
  if($('typeValue'))setType($('typeValue').value||activeType);
 }
 
-const TYPE_LABEL={modal:'Modal masuk',income:'Pemasukan',expense:'Pengeluaran',stockin:'Barang masuk',stockout:'Barang keluar'};
+const TYPE_LABEL={modal:'Modal masuk',income:'Pemasukan',expense:'Pengeluaran',stockin:'Barang masuk',stockout:'Barang keluar',roast:'Produksi / roasting'};
 const $=id=>document.getElementById(id);
 let currentUser=null, records=[], activeType='modal', toastTimer;
 let supabaseClient=null, cloudSnapshot=new Map(), cloudChannel=null, cloudReady=false, suppressCloudWrites=false;
 function loadLocalRecords(){try{const raw=localStorage.getItem(STORAGE_KEY);const arr=raw?JSON.parse(raw):[];return Array.isArray(arr)?arr:[]}catch(e){return []}}
-function loadLocalMasterData(){try{const raw=JSON.parse(localStorage.getItem(MASTER_KEY)||'null');return raw&&typeof raw==='object'?raw:JSON.parse(JSON.stringify({categories:CATEGORIES,...DEFAULT_MASTER}))}catch(e){return JSON.parse(JSON.stringify({categories:CATEGORIES,...DEFAULT_MASTER}))}}
+function loadLocalMasterData(){try{return normalizeMasterData(JSON.parse(localStorage.getItem(MASTER_KEY)||'null'))}catch(e){return normalizeMasterData(null)}}
 function localBackupData(){return {app:'Suwanting Coffee Cashflow',version:1,exportedAt:new Date().toISOString(),records:loadLocalRecords(),masterData:loadLocalMasterData()}}
 function persist(){
   if(suppressCloudWrites || !cloudReady || !supabaseClient) return Promise.resolve(false);
@@ -1036,21 +1053,34 @@ function setType(type){
   amount:$('amount').closest('.field'),name:$('name').closest('.field')
  };
  const isStock=type==='stockin'||type==='stockout';
- const isModal=type==='modal';
+ const isModal=type==='modal',isRoast=type==='roast';
  fields.qty.hidden=isModal;
  fields.unit.hidden=isModal;
- fields.unitPrice.hidden=isModal||isStock;
- fields.amount.hidden=false;
- $('amount').required=true;
+ fields.unitPrice.hidden=isModal||isStock||isRoast;
+ fields.amount.hidden=isRoast;
+ $('amount').required=!isRoast;
+ if(isRoast)$('amount').value='0';
  $('amount').placeholder=isStock?'Nilai barang (opsional, isi 0 jika belum diketahui)':'0';
- $('name').previousElementSibling.textContent=isModal?'Nama sumber modal / keterangan *':isStock?'Nama barang *':type==='expense'?'Nama barang / keperluan *':'Nama barang / sumber pemasukan *';
- $('name').placeholder=isModal?'Contoh: Modal awal pemilik atau pinjaman bank':isStock?'Contoh: Roasted beans Merapi Natural':type==='expense'?'Contoh: Pembelian kemasan 100 gram':'Contoh: Penjualan roasted beans';
+ $('name').previousElementSibling.textContent=isModal?'Nama sumber modal / keterangan *':isStock?'Nama barang *':isRoast?'Nama hasil roasting *':type==='expense'?'Nama barang / keperluan *':'Nama barang / sumber pemasukan *';
+ $('name').placeholder=isModal?'Contoh: Modal awal pemilik atau pinjaman bank':isStock?'Contoh: Roasted beans Merapi Natural':isRoast?'Contoh: Roasted Beans Merapi':'Contoh: '+(type==='expense'?'Pembelian kemasan 100 gram':'Penjualan roasted beans');
+ $('qty').closest('.field').querySelector('label').textContent=isRoast?'Jumlah hasil roasting *':'Jumlah / kuantitas';
+ $('unit').closest('.field').querySelector('label').textContent=isRoast?'Satuan hasil roasting':'Satuan';
  $('party').previousElementSibling.textContent=isModal?'Sumber modal / pemberi dana':type==='income'?'Pelanggan / sumber pemasukan':type==='expense'?'Supplier / penerima pembayaran':type==='stockin'?'Supplier / asal barang':'Tujuan / penerima barang';
  $('qty').placeholder=isStock?'Jumlah barang':'Jumlah';
  $('unitPrice').disabled=isModal||isStock;
  $('unitPrice').placeholder=isModal||isStock?'Tidak diperlukan':'0';
  $('payment').disabled=isStock;
  $('account').disabled=isStock;
+ fields.party.hidden=isRoast;
+ fields.payment.hidden=isRoast;
+ fields.account.hidden=isRoast;
+ $('stockPurchaseField').classList.toggle('hidden',type!=='expense');
+ $('stockSaleField').classList.toggle('hidden',type!=='income');
+ ['roastInputNameField','roastInputQtyField','roastInputUnitField'].forEach(id=>$(id).classList.toggle('hidden',!isRoast));
+ if(!isRoast&&!$('editId').value){
+  $('stockPurchase').checked=type==='expense'&&category.value.toLowerCase().includes('bahan baku');
+  $('stockSale').checked=type==='income'&&category.value.toLowerCase().includes('penjualan');
+ }
  $('payment').closest('.field').querySelector('label').textContent=isModal?'Metode penerimaan modal':'Metode pembayaran';
  $('account').closest('.field').querySelector('label').textContent='Kas / rekening';
 }
@@ -1059,19 +1089,114 @@ async function logout(){if(supabaseClient)await supabaseClient.auth.signOut();cu
 function filteredRecords(){const q=$('search').value.trim().toLowerCase(),type=$('filterType').value,month=$('filterMonth').value;return records.filter(r=>(!q||[r.name,r.category,r.party,r.reference,r.notes,r.account,r.createdBy].join(' ').toLowerCase().includes(q))&&(!type||r.type===type)&&(!month||r.date?.startsWith(month))).sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time))}
 function cashStats(){const total=t=>records.filter(r=>r.type===t).reduce((s,r)=>s+num(r.amount),0);const capital=total('modal'),income=total('income'),expense=total('expense');return{capital,income,expense,net:capital+income-expense}}
 function renderStats(){const s=cashStats();$('heroBalance').textContent=rupiah(s.net);$('statCapital').textContent=rupiah(s.capital);$('statIncome').textContent=rupiah(s.income);$('statExpense').textContent=rupiah(s.expense);$('statCount').textContent=records.length.toLocaleString('id-ID');$('sideCapital').textContent=rupiah(s.capital);$('sideIncome').textContent=rupiah(s.income);$('sideExpense').textContent=rupiah(s.expense);$('sideNet').textContent=rupiah(s.net);$('sideNet').className='amount '+(s.net<0?'red':'green');$('reportCapital').textContent=rupiah(s.capital);$('reportIncome').textContent=rupiah(s.income);$('reportExpense').textContent=rupiah(s.expense);$('reportNet').textContent=rupiah(s.net);$('reportNet').className=s.net<0?'red':'green'}
-function renderRows(){const rows=filteredRecords();$('transactionRows').innerHTML=rows.length?rows.map(r=>`<tr><td>${safe(r.date)}<br><span class="muted">${safe(r.time||'—')}</span></td><td><span class="tag ${['modal','income','stockin'].includes(r.type)?'in':r.type==='stockout'?'stock':'out'}">${safe(TYPE_LABEL[r.type]||r.type)}</span></td><td><strong>${safe(r.name)}</strong><br><span class="muted">${safe(r.category)}${r.party?' · '+safe(r.party):''}</span>${r.reference?'<br><span class="muted">Ref: '+safe(r.reference)+'</span>':''}</td><td>${num(r.qty).toLocaleString('id-ID')} ${safe(r.unit||'')}</td><td>${rupiah(r.unitPrice)}</td><td><strong>${rupiah(r.amount)}</strong></td><td>${safe(r.createdBy||'—')}</td><td><div class="row-actions"><button class="soft" data-edit="${safe(r.id)}">Edit</button><button class="danger" data-delete="${safe(r.id)}">Hapus</button></div></td></tr>`).join(''):'<tr><td colspan="8" class="empty">Belum ada transaksi yang sesuai filter.</td></tr>';$('tableSummary').textContent=`Menampilkan ${rows.length} dari ${records.length} transaksi · Total nilai tampilan: ${rupiah(rows.reduce((s,r)=>s+num(r.amount),0))}`}
-function renderRecent(){const rows=[...records].sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time)).slice(0,5);$('recentList').innerHTML=rows.length?rows.map(r=>`<div class="mini-row"><div><strong>${safe(r.name)}</strong><small>${safe(r.date)} · ${safe(TYPE_LABEL[r.type])}</small></div><div class="amount ${['modal','income','stockin'].includes(r.type)?'green':'red'}">${rupiah(r.amount)}</div></div>`).join(''):'<div class="empty">Belum ada transaksi.</div>'}
-function renderStock(){const map={};records.filter(r=>['stockin','stockout'].includes(r.type)).forEach(r=>{const k=(r.name||'Barang').trim().toLowerCase();if(!map[k])map[k]={name:r.name,unit:r.unit||'pcs',qty:0,valueIn:0,valueOut:0};map[k].qty+=(r.type==='stockin'?1:-1)*num(r.qty);if(r.type==='stockin')map[k].valueIn+=num(r.amount);else map[k].valueOut+=num(r.amount)});const list=Object.values(map).sort((a,b)=>a.name.localeCompare(b.name));$('stockGrid').innerHTML=list.length?list.map(x=>`<div class="stock-card"><strong>${safe(x.name)}</strong><div class="qty">${x.qty.toLocaleString('id-ID')} ${safe(x.unit)}</div><small>Nilai masuk: ${rupiah(x.valueIn)}</small><br><small>Nilai keluar: ${rupiah(x.valueOut)}</small></div>`).join(''):'<div class="empty">Belum ada pergerakan stok.</div>'}
+function renderRows(){
+ const rows=filteredRecords();
+ $('transactionRows').innerHTML=rows.length?rows.map(r=>{
+  const detail=r.type==='roast'?`<br><span class="muted">Bahan: ${safe(r.inputName)} · ${num(r.inputQty).toLocaleString('id-ID')} ${safe(r.inputUnit||'')}</span>`:'';
+  const stockNote=r.type==='expense'&&r.stockPurchase?'<br><span class="muted">Barang masuk ke stok</span>':r.type==='income'&&r.stockSale?'<br><span class="muted">Barang keluar dari stok</span>':'';
+  const tagClass=['modal','income','stockin'].includes(r.type)?'in':['stockout','roast'].includes(r.type)?'stock':'out';
+  return `<tr><td>${safe(r.date)}<br><span class="muted">${safe(r.time||'—')}</span></td><td><span class="tag ${tagClass}">${safe(TYPE_LABEL[r.type]||r.type)}</span></td><td><strong>${safe(r.name)}</strong><br><span class="muted">${safe(r.category)}${r.party?' · '+safe(r.party):''}</span>${detail}${stockNote}${r.reference?'<br><span class="muted">Ref: '+safe(r.reference)+'</span>':''}</td><td>${num(r.qty).toLocaleString('id-ID')} ${safe(r.unit||'')}</td><td>${rupiah(r.unitPrice)}</td><td><strong>${rupiah(r.amount)}</strong></td><td>${safe(r.createdBy||'—')}</td><td><div class="row-actions"><button class="soft" data-edit="${safe(r.id)}">Edit</button><button class="danger" data-delete="${safe(r.id)}">Hapus</button></div></td></tr>`
+ }).join(''):'<tr><td colspan="8" class="empty">Belum ada transaksi yang sesuai filter.</td></tr>';
+ $('tableSummary').textContent=`Menampilkan ${rows.length} dari ${records.length} transaksi · Total nilai tampilan: ${rupiah(rows.reduce((s,r)=>s+num(r.amount),0))}`;
+}
+function renderRecent(){const rows=[...records].sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time)).slice(0,5);$('recentList').innerHTML=rows.length?rows.map(r=>`<div class="mini-row"><div><strong>${safe(r.name)}</strong><small>${safe(r.date)} · ${safe(TYPE_LABEL[r.type])}</small></div><div class="amount ${['modal','income','stockin'].includes(r.type)?'green':['stockout','roast'].includes(r.type)?'':'red'}">${rupiah(r.amount)}</div></div>`).join(''):'<div class="empty">Belum ada transaksi.</div>'}
+function inventoryMovements(r){
+ if(r.type==='stockin')return[{name:r.name,unit:r.unit,qty:num(r.qty),valueIn:num(r.amount),valueOut:0}];
+ if(r.type==='stockout')return[{name:r.name,unit:r.unit,qty:-num(r.qty),valueIn:0,valueOut:num(r.amount)}];
+ if(r.type==='expense'&&r.stockPurchase)return[{name:r.name,unit:r.unit,qty:num(r.qty),valueIn:num(r.amount),valueOut:0}];
+ if(r.type==='income'&&r.stockSale)return[{name:r.name,unit:r.unit,qty:-num(r.qty),valueIn:0,valueOut:0}];
+ if(r.type==='roast')return[
+  {name:r.inputName,unit:r.inputUnit,qty:-num(r.inputQty),valueIn:0,valueOut:0},
+  {name:r.name,unit:r.unit,qty:num(r.qty),valueIn:0,valueOut:0}
+ ];
+ return[];
+}
+function inventoryBalances(source=records,excludeId=''){
+ const map={};
+ source.filter(r=>r.id!==excludeId).forEach(r=>inventoryMovements(r).forEach(m=>{
+  const name=(m.name||'Barang').trim(),unit=m.unit||'pcs',key=name.toLocaleLowerCase()+'|'+unit.toLocaleLowerCase();
+  if(!map[key])map[key]={name,unit,qty:0,qtyIn:0,qtyOut:0,valueIn:0,valueOut:0};
+  map[key].qty+=m.qty;if(m.qty>0)map[key].qtyIn+=m.qty;if(m.qty<0)map[key].qtyOut-=m.qty;
+  map[key].valueIn+=m.valueIn;map[key].valueOut+=m.valueOut;
+ }));
+ return map;
+}
+function syncRoastStockOptions(excludeId=''){
+ const balances=Object.values(inventoryBalances(records,excludeId)).filter(item=>item.qty>0);
+ $('roastStockOptions').innerHTML=balances.map(item=>`<option value="${safe(item.name)}">${safe(item.qty.toLocaleString('id-ID'))} ${safe(item.unit)} tersedia</option>`).join('');
+ $('roastStockHint').textContent=balances.length
+  ?'Stok tersedia: '+balances.map(item=>`${item.name} (${item.qty.toLocaleString('id-ID')} ${item.unit})`).join(', ')+'.'
+  :'Belum ada stok bahan. Catat barang masuk dan pastikan satuannya benar.';
+ return balances;
+}
+function matchRoastStock(name,preferredUnit=''){
+ const normalized=name.trim().toLocaleLowerCase();
+ if(!normalized)return null;
+ const balances=syncRoastStockOptions($('editId').value);
+ return balances.find(item=>item.name.toLocaleLowerCase()===normalized&&item.unit.toLocaleLowerCase()===preferredUnit.toLocaleLowerCase())
+  ||balances.find(item=>item.name.toLocaleLowerCase()===normalized)
+  ||null;
+}
+function addSelectOption(select,value){
+ if(!value||Array.from(select.options).some(option=>option.value===value))return;
+ select.add(new Option(value,value));
+}
+function selectRoastInput(name){
+ const match=matchRoastStock(name,$('roastInputUnit').value);
+ if(!match)return;
+ $('roastInputName').value=match.name;
+ addSelectOption($('roastInputUnit'),match.unit);
+ addSelectOption($('unit'),match.unit);
+ $('roastInputUnit').value=match.unit;
+ $('unit').value=match.unit;
+}
+function renderStock(){const list=Object.values(inventoryBalances()).sort((a,b)=>a.name.localeCompare(b.name)||a.unit.localeCompare(b.unit));$('stockGrid').innerHTML=list.length?list.map(x=>`<div class="stock-card"><strong>${safe(x.name)}</strong><div class="qty ${x.qty<0?'red':''}">${x.qty.toLocaleString('id-ID')} ${safe(x.unit)}</div><small>Nilai masuk: ${rupiah(x.valueIn)}</small><br><small>Nilai keluar: ${rupiah(x.valueOut)}</small></div>`).join(''):'<div class="empty">Belum ada pergerakan stok.</div>'}
 function renderChart(){const d=new Date(),months=[];for(let i=5;i>=0;i--){const dt=new Date(d.getFullYear(),d.getMonth()-i,1);const key=`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`;months.push({key,label:dt.toLocaleDateString('id-ID',{month:'short'})})}const vals=months.map(m=>({ ...m,inc:records.filter(r=>r.date?.startsWith(m.key)&&['modal','income'].includes(r.type)).reduce((s,r)=>s+num(r.amount),0),out:records.filter(r=>r.date?.startsWith(m.key)&&r.type==='expense').reduce((s,r)=>s+num(r.amount),0)}));const max=Math.max(1,...vals.flatMap(v=>[v.inc,v.out]));$('cashChart').innerHTML=vals.map(v=>`<div class="bar-col"><span>${v.inc?Math.round(v.inc/1000)+'k':'—'}</span><div class="bar" title="Modal + pemasukan: ${rupiah(v.inc)}" style="height:${Math.max(3,v.inc/max*80)}%"></div><div class="bar" title="Pengeluaran: ${rupiah(v.out)}" style="height:${Math.max(3,v.out/max*80)}%;background:linear-gradient(180deg,#d5a58a,#9b7059)"></div><small>${safe(v.label)}</small></div>`).join('')}
 function renderMonthFilter(){const old=$('filterMonth').value,months=[...new Set(records.map(r=>r.date?.slice(0,7)).filter(Boolean))].sort().reverse();$('filterMonth').innerHTML='<option value="">Semua bulan</option>'+months.map(m=>`<option value="${m}">${new Date(m+'-01T00:00:00').toLocaleDateString('id-ID',{month:'long',year:'numeric'})}</option>`).join('');if(months.includes(old))$('filterMonth').value=old}
 function renderAll(){renderStats();renderMonthFilter();renderRows();renderRecent();renderStock();renderChart()}
 function clearForm(){ $('transactionForm').reset();$('editId').value='';$('date').value=today();$('time').value=new Date().toTimeString().slice(0,5);$('qty').value='1';$('formTitle').textContent='Tambah transaksi';$('modalTitle').textContent='Tambah transaksi';$('saveBtn').textContent='Simpan transaksi';$('cancelEdit').classList.add('hidden');setType(activeType)}
 function openTransactionModal(){ $('transactionModal').classList.remove('hidden'); document.body.classList.add('modal-open'); }
 function closeTransactionModal(){ $('transactionModal').classList.add('hidden'); document.body.classList.remove('modal-open'); }
-function openEntry(type='modal'){syncMasterSelects();clearForm();setType(type);$('formTitle').textContent='Tambah transaksi';$('modalTitle').textContent='Tambah transaksi';openTransactionModal();}
-function startEdit(id){const r=records.find(x=>x.id===id);if(!r)return;setType(r.type);$('editId').value=r.id;for(const key of ['date','time','category','name','qty','unit','unitPrice','amount','payment','party','reference','account','notes'])$(key).value=r[key]??'';$('formTitle').textContent='Edit transaksi';$('modalTitle').textContent='Edit transaksi';$('saveBtn').textContent='Simpan perubahan';$('cancelEdit').classList.remove('hidden');openTransactionModal()}
+function openEntry(type='modal'){
+ syncMasterSelects();clearForm();setType(type);
+ if(type==='roast'){
+  const available=syncRoastStockOptions();
+  const first=available[0];
+  if(first){
+   $('roastInputName').value=first.name;
+   addSelectOption($('roastInputUnit'),first.unit);addSelectOption($('unit'),first.unit);
+   $('roastInputUnit').value=first.unit;$('unit').value=first.unit;
+  }else syncRoastStockOptions();
+ }
+ $('formTitle').textContent='Tambah transaksi';$('modalTitle').textContent='Tambah transaksi';openTransactionModal();
+}
+function startEdit(id){
+ const r=records.find(x=>x.id===id);if(!r)return;
+ setType(r.type);$('editId').value=r.id;
+ for(const key of ['date','time','category','name','qty','unit','unitPrice','amount','payment','party','reference','account','notes'])$(key).value=r[key]??'';
+ $('roastInputName').value=r.inputName||'';
+ $('roastInputQty').value=r.inputQty??'';
+ $('roastInputUnit').value=r.inputUnit||masterData.units[0]||'kg';
+ $('stockPurchase').checked=r.stockPurchase===true;
+ $('stockSale').checked=r.stockSale===true;
+ if(r.type==='roast'){syncRoastStockOptions(r.id);addSelectOption($('roastInputUnit'),r.inputUnit);addSelectOption($('unit'),r.unit)}
+ $('formTitle').textContent='Edit transaksi';$('modalTitle').textContent='Edit transaksi';$('saveBtn').textContent='Simpan perubahan';$('cancelEdit').classList.remove('hidden');openTransactionModal();
+}
 async function deleteRecord(id){const r=records.find(x=>x.id===id);if(!r)return;const ok=await reconfirm(`Hapus transaksi "${r.name}" tanggal ${r.date}? Tindakan ini tidak bisa dibatalkan.`,{title:'Hapus transaksi?',okText:'Ya, hapus',danger:true});if(!ok)return;try{const previous=records;records=records.filter(x=>x.id!==id);await persist();saveRecords();toast('Berhasil: transaksi dihapus.')}catch(err){toast('Gagal menghapus transaksi di cloud. Muat ulang data dan coba lagi.');await refreshCloudData().catch(()=>{})}}
-function exportExcel(data=records,filtered=false){if(!window.XLSX){toast('Library Excel gagal dimuat. Periksa koneksi internet.');return}const sorted=[...data].sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));const detail=sorted.map(r=>({'Tanggal':r.date,'Jam':r.time,'Jenis':TYPE_LABEL[r.type]||r.type,'Kategori':r.category,'Nama Barang / Transaksi':r.name,'Kuantitas':num(r.qty),'Satuan':r.unit,'Harga Satuan (Rp)':num(r.unitPrice),'Total (Rp)':num(r.amount),'Metode Pembayaran':r.payment,'Supplier / Sumber / Penerima':r.party,'No. Nota / Referensi':r.reference,'Kas / Rekening':r.account,'Catatan':r.notes,'Dicatat Oleh':r.createdBy,'Terakhir Diedit Oleh':r.updatedBy||r.createdBy,'Waktu Dibuat':r.createdAt,'Waktu Diedit':r.updatedAt||''}));const sum=cashStats();const summary=[{'Ringkasan':'Total modal masuk','Nilai (Rp)':sum.capital},{'Ringkasan':'Total pemasukan','Nilai (Rp)':sum.income},{'Ringkasan':'Total pengeluaran','Nilai (Rp)':sum.expense},{'Ringkasan':'Arus kas bersih','Nilai (Rp)':sum.net},{'Ringkasan':'Jumlah transaksi','Nilai (Rp)':records.length}];const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(detail),'Transaksi');XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(summary),'Ringkasan');const stockRows=[];const sm={};sorted.filter(r=>['stockin','stockout'].includes(r.type)).forEach(r=>{let k=r.name.toLowerCase();if(!sm[k])sm[k]={barang:r.name,satuan:r.unit,masuk:0,keluar:0,nilai_masuk:0,nilai_keluar:0};if(r.type==='stockin'){sm[k].masuk+=num(r.qty);sm[k].nilai_masuk+=num(r.amount)}else{sm[k].keluar+=num(r.qty);sm[k].nilai_keluar+=num(r.amount)}});Object.values(sm).forEach(x=>stockRows.push({...x,stok_akhir:x.masuk-x.keluar}));XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(stockRows),'Persediaan');XLSX.writeFile(wb,`Suwanting_Cashflow_${filtered?'Filter_':''}${today()}.xlsx`);toast('File Excel berhasil dibuat.')}
+function exportExcel(data=records,filtered=false){
+ if(!window.XLSX){toast('Library Excel gagal dimuat. Periksa koneksi internet.');return}
+ const sorted=[...data].sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
+ const detail=sorted.map(r=>({'Tanggal':r.date,'Jam':r.time,'Jenis':TYPE_LABEL[r.type]||r.type,'Kategori':r.category,'Nama Barang / Transaksi':r.name,'Kuantitas':num(r.qty),'Satuan':r.unit,'Bahan Roasting':r.inputName||'','Bahan Digunakan':num(r.inputQty),'Satuan Bahan':r.inputUnit||'','Masuk Stok':r.stockPurchase?'Ya':'','Keluar Stok':r.stockSale?'Ya':'','Harga Satuan (Rp)':num(r.unitPrice),'Total (Rp)':num(r.amount),'Metode Pembayaran':r.payment,'Supplier / Sumber / Penerima':r.party,'No. Nota / Referensi':r.reference,'Kas / Rekening':r.account,'Catatan':r.notes,'Dicatat Oleh':r.createdBy,'Terakhir Diedit Oleh':r.updatedBy||r.createdBy,'Waktu Dibuat':r.createdAt,'Waktu Diedit':r.updatedAt||''}));
+ const sum=cashStats();
+ const summary=[{'Ringkasan':'Total modal masuk','Nilai (Rp)':sum.capital},{'Ringkasan':'Total pemasukan','Nilai (Rp)':sum.income},{'Ringkasan':'Total pengeluaran','Nilai (Rp)':sum.expense},{'Ringkasan':'Arus kas bersih','Nilai (Rp)':sum.net},{'Ringkasan':'Jumlah transaksi','Nilai (Rp)':records.length}];
+ const wb=XLSX.utils.book_new();
+ XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(detail),'Transaksi');
+ XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(summary),'Ringkasan');
+ const stockRows=Object.values(inventoryBalances(sorted)).map(x=>({barang:x.name,satuan:x.unit,masuk:x.qtyIn,keluar:x.qtyOut,nilai_masuk:x.valueIn,nilai_keluar:x.valueOut,stok_akhir:x.qty}));
+ XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(stockRows),'Persediaan');
+ XLSX.writeFile(wb,`Suwanting_Cashflow_${filtered?'Filter_':''}${today()}.xlsx`);
+ toast('File Excel berhasil dibuat.');
+}
 function downloadJson(){const blob=new Blob([JSON.stringify({app:'Suwanting Coffee Cashflow',version:1,exportedAt:new Date().toISOString(),records,masterData},null,2)],{type:'application/json'});const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`Suwanting_Backup_${today()}.json`;a.click();URL.revokeObjectURL(url);toast('Backup JSON berhasil diunduh.')}
 $('loginForm').addEventListener('submit',async e=>{e.preventDefault();if(!SUPABASE_CONFIGURED||!supabaseClient){toast('Konfigurasi Supabase belum diisi.');return}const email=$('loginUser').value.trim(),password=$('loginPass').value;const btn=$('loginForm').querySelector('button[type=submit]');btn.disabled=true;btn.textContent='Memverifikasi…';try{const {data,error}=await supabaseClient.auth.signInWithPassword({email,password});if(error)throw error;await activateSession(data.session);clearForm();document.querySelector('[data-page="dashboard"]').click();toast('Login berhasil. Data cloud dimuat.')}catch(err){toast('Login gagal: '+(err.message||'periksa email/password dan konfigurasi Supabase.'))}finally{btn.disabled=false;btn.textContent='Masuk ke dashboard →'}});
 function openProfileModal(){
@@ -1202,25 +1327,71 @@ document.querySelectorAll('.nav-tab').forEach(btn=>btn.addEventListener('click',
 document.querySelectorAll('[data-go-page]').forEach(btn=>btn.addEventListener('click',()=>document.querySelector(`[data-page="${btn.dataset.goPage}"]`).click()));
 document.querySelectorAll('[data-open-entry]').forEach(btn=>btn.addEventListener('click',()=>openEntry('modal')));
 document.querySelectorAll('[data-open-stock]').forEach(btn=>btn.addEventListener('click',()=>openEntry('stockin')));
+document.querySelectorAll('[data-open-roast]').forEach(btn=>btn.addEventListener('click',()=>openEntry('roast')));
 $('closeTransactionModal').addEventListener('click',closeTransactionModal);
 $('transactionModal').addEventListener('click',e=>{if(e.target===$('transactionModal'))closeTransactionModal()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeTransactionModal();$('modalBackdrop').classList.add('hidden')}});
 $('inventoryExportBtn').addEventListener('click',()=>exportExcel(records));
 $('reportExportBtn').addEventListener('click',()=>exportExcel(records));
 $('transactionTypeSelect').addEventListener('change',async e=>{const nextType=e.target.value;if(nextType===activeType)return;if($('editId').value){const ok=await reconfirm('Mengganti jenis transaksi akan membatalkan perubahan pada transaksi yang sedang diedit. Lanjutkan?',{title:'Ganti jenis transaksi?',okText:'Ya, ganti'});if(!ok){e.target.value=activeType;return}clearForm()}setType(nextType);toast('Jenis transaksi diperbarui.');});
+$('roastInputName').addEventListener('input',e=>selectRoastInput(e.target.value));
+$('roastInputName').addEventListener('change',e=>selectRoastInput(e.target.value));
+$('category').addEventListener('change',()=>{
+ if($('editId').value)return;
+ const type=$('typeValue').value,category=$('category').value.toLowerCase();
+ if(type==='expense')$('stockPurchase').checked=category.includes('bahan baku');
+ if(type==='income')$('stockSale').checked=category.includes('penjualan');
+});
 $('qty').addEventListener('input',()=>{const total=num($('qty').value)*num($('unitPrice').value);if($('unitPrice').value!=='')$('amount').value=Math.round(total)});
 $('unitPrice').addEventListener('input',()=>{if($('unitPrice').value!=='')$('amount').value=Math.round(num($('qty').value)*num($('unitPrice').value))});
 
 function updateAmountFromQuantity(){
  const type=$('typeValue').value;
- if(type==='modal'||type==='stockin'||type==='stockout')return;
+ if(type==='modal'||type==='stockin'||type==='stockout'||type==='roast')return;
  const qty=Number($('qty').value||0),price=Number($('unitPrice').value||0);
  if(price>0)$('amount').value=Math.round(qty*price);
 }
 $('qty').addEventListener('input',updateAmountFromQuantity);
 $('unitPrice').addEventListener('input',updateAmountFromQuantity);
 
-$('transactionForm').addEventListener('submit',async e=>{e.preventDefault();const type=$('typeValue').value,editId=$('editId').value,old=records.find(r=>r.id===editId);const amount=num($('amount').value);if(amount<0){toast('Nilai transaksi tidak boleh negatif.');return}const record={id:editId||`${Date.now()}-${Math.random().toString(36).slice(2,8)}`,type,date:$('date').value,time:$('time').value,category:$('category').value,name:$('name').value.trim(),qty:num($('qty').value),unit:$('unit').value,unitPrice:num($('unitPrice').value),amount,payment:$('payment').value,party:$('party').value.trim(),reference:$('reference').value.trim(),account:$('account').value,notes:$('notes').value.trim(),createdBy:old?.createdBy||displayName(currentUser),updatedBy:old?displayName(currentUser):null,createdAt:old?.createdAt||new Date().toISOString(),updatedAt:old?new Date().toISOString():null};if(!record.name||!record.date){toast('Lengkapi tanggal dan nama transaksi.');return}if(old)records=records.map(r=>r.id===editId?record:r);else records.push(record);try{await persist();saveRecords();clearForm();closeTransactionModal();toast(old?'Perubahan transaksi disimpan.':'Transaksi berhasil disimpan.')}catch(err){toast('Gagal menyimpan ke cloud: '+(err.message||'periksa koneksi'));}});
+$('transactionForm').addEventListener('submit',async e=>{
+ e.preventDefault();
+ const type=$('typeValue').value,editId=$('editId').value,old=records.find(r=>r.id===editId),amount=num($('amount').value);
+ const record={
+  id:editId||`${Date.now()}-${Math.random().toString(36).slice(2,8)}`,type,date:$('date').value,time:$('time').value,
+  category:$('category').value,name:$('name').value.trim(),qty:num($('qty').value),unit:$('unit').value,
+  unitPrice:num($('unitPrice').value),amount:type==='roast'?0:amount,payment:$('payment').value,party:$('party').value.trim(),
+  reference:$('reference').value.trim(),account:$('account').value,notes:$('notes').value.trim(),
+  stockPurchase:type==='expense'&&$('stockPurchase').checked,stockSale:type==='income'&&$('stockSale').checked,inputName:$('roastInputName').value.trim(),
+  inputQty:num($('roastInputQty').value),inputUnit:$('roastInputUnit').value,
+  createdBy:old?.createdBy||displayName(currentUser),updatedBy:old?displayName(currentUser):null,
+  createdAt:old?.createdAt||new Date().toISOString(),updatedAt:old?new Date().toISOString():null
+ };
+ if(!record.name||!record.date){toast('Lengkapi tanggal dan nama transaksi.');return}
+ if(amount<0){toast('Nilai transaksi tidak boleh negatif.');return}
+ if(record.stockPurchase&&(record.qty<=0||!record.unit)){toast('Isi jumlah dan satuan barang yang dibeli untuk menambah stok.');return}
+ if(record.stockSale&&(record.qty<=0||!record.unit)){toast('Isi jumlah dan satuan barang yang terjual untuk mengurangi stok.');return}
+ if(record.stockSale){
+  const key=record.name.toLocaleLowerCase()+'|'+record.unit.toLocaleLowerCase();
+  const available=inventoryBalances(records,editId)[key]?.qty||0;
+  if(available<record.qty){toast(`Stok ${record.name} tidak cukup. Tersedia ${available} ${record.unit}.`);return}
+ }
+ if(type==='roast'){
+  if(!record.inputName||record.inputQty<=0||record.qty<=0||!record.inputUnit||!record.unit){toast('Lengkapi bahan, jumlah bahan, dan jumlah hasil roasting.');return}
+  const key=record.inputName.toLocaleLowerCase()+'|'+record.inputUnit.toLocaleLowerCase();
+  const available=inventoryBalances(records,editId)[key]?.qty||0;
+  if(available<record.inputQty){toast(`Stok ${record.inputName} tidak cukup. Tersedia ${available} ${record.inputUnit}.`);return}
+ }
+ const previousRecords=records;
+ if(old)records=records.map(r=>r.id===editId?record:r);else records=[...records,record];
+ try{
+  await persist();saveRecords();clearForm();closeTransactionModal();
+  toast(old?'Perubahan transaksi disimpan.':'Transaksi berhasil disimpan.');
+ }catch(err){
+  records=previousRecords;
+  toast('Gagal menyimpan ke cloud: '+(err.message||'periksa koneksi'));
+ }
+});
 $('resetBtn').addEventListener('click',()=>setTimeout(clearForm,0));$('cancelEdit').addEventListener('click',()=>{clearForm();closeTransactionModal()});
 $('transactionRows').addEventListener('click',e=>{const edit=e.target.closest('[data-edit]'),del=e.target.closest('[data-delete]');if(edit)startEdit(edit.dataset.edit);if(del)deleteRecord(del.dataset.delete)});
 ['search','filterType','filterMonth'].forEach(id=>$(id).addEventListener(id==='search'?'input':'change',renderRows));
@@ -1234,7 +1405,7 @@ async function saveCloudMasterData(){if(!cloudReady||!supabaseClient)return;cons
 async function refreshCloudData(){if(!supabaseClient||!currentUser)return;const [{data:tx,error:txErr},{data:settings,error:settingsErr}]=await Promise.all([
  supabaseClient.from('cashflow_transactions').select('id,data').eq('workspace_id',WORKSPACE_ID),
  supabaseClient.from('cashflow_workspace_settings').select('master_data').eq('workspace_id',WORKSPACE_ID).maybeSingle()
-]);if(txErr)throw txErr;if(settingsErr)throw settingsErr;suppressCloudWrites=true;records=(tx||[]).map(x=>({...x.data,id:String(x.id)}));cloudSnapshot=new Map(records.map(r=>[String(r.id),r]));if(settings?.master_data && Object.keys(settings.master_data).length && settings.master_data.categories){masterData=settings.master_data;try{localStorage.setItem(MASTER_KEY,JSON.stringify(masterData))}catch(e){}}try{localStorage.setItem(STORAGE_KEY,JSON.stringify(records))}catch(e){}suppressCloudWrites=false;syncMasterSelects();renderSettings();renderAll();cloudReady=true}
+]);if(txErr)throw txErr;if(settingsErr)throw settingsErr;suppressCloudWrites=true;records=(tx||[]).map(x=>({...x.data,id:String(x.id)}));cloudSnapshot=new Map(records.map(r=>[String(r.id),r]));if(settings?.master_data && Object.keys(settings.master_data).length && settings.master_data.categories){masterData=normalizeMasterData(settings.master_data);try{localStorage.setItem(MASTER_KEY,JSON.stringify(masterData))}catch(e){}}try{localStorage.setItem(STORAGE_KEY,JSON.stringify(records))}catch(e){}suppressCloudWrites=false;syncMasterSelects();renderSettings();renderAll();cloudReady=true}
 async function activateSession(session){if(!session?.user)return;currentUser=session.user;cloudReady=false;login(currentUser);$('cloudStatus').textContent='Terhubung ke Supabase. Memuat data bersama…';try{await refreshCloudData();login(currentUser);if(cloudChannel)await supabaseClient.removeChannel(cloudChannel);cloudChannel=supabaseClient.channel('suwanting-cashflow-'+WORKSPACE_ID).on('postgres_changes',{event:'*',schema:'public',table:'cashflow_transactions',filter:'workspace_id=eq.'+WORKSPACE_ID},async()=>{try{await refreshCloudData()}catch(e){toast('Gagal menyegarkan data cloud.')}}).on('postgres_changes',{event:'*',schema:'public',table:'cashflow_workspace_settings',filter:'workspace_id=eq.'+WORKSPACE_ID},async()=>{try{await refreshCloudData()}catch(e){}}).subscribe();$('cloudStatus').textContent='Cloud aktif. Data dibagikan dengan anggota workspace.';document.querySelector('[data-page="dashboard"]').click();if(records.length===0&&loadLocalRecords().length>0)toast('Ada data lokal di perangkat ini. Buat backup lalu gunakan Migrasikan data lokal ke cloud.');}catch(err){cloudReady=false;$('cloudStatus').textContent='Gagal memuat cloud: '+(err.message||'periksa SQL/RLS dan anggota workspace');throw err}}
 async function migrateLocalToCloud(){if(!currentUser||!supabaseClient){toast('Login ke Supabase terlebih dahulu.');return}const local=localBackupData();if(!local.records.length&&!local.masterData){toast('Tidak ditemukan data lokal untuk dimigrasikan.');return}const {data:existing,error}=await supabaseClient.from('cashflow_transactions').select('id').eq('workspace_id',WORKSPACE_ID).limit(1);if(error)throw error;if(existing?.length){const ok=await reconfirm('Workspace cloud sudah memiliki transaksi. Migrasi ini dapat menggabungkan atau menimpa transaksi dengan ID sama. Lanjutkan?',{title:'Workspace tidak kosong',okText:'Lanjutkan migrasi',danger:true});if(!ok)return}const ok=await reconfirm('Salin '+local.records.length+' transaksi lokal dan data master ke cloud? Data lokal tetap tersimpan, tetapi data master cloud akan diganti.',{title:'Konfirmasi migrasi',okText:'Salin ke cloud'});if(!ok)return;const rows=local.records.map(r=>({id:String(r.id),workspace_id:WORKSPACE_ID,data:r,updated_by:currentUser.id}));if(rows.length){const {error:upErr}=await supabaseClient.from('cashflow_transactions').upsert(rows,{onConflict:'id'});if(upErr)throw upErr}await saveCloudMasterDataFrom(local.masterData);await refreshCloudData();toast('Migrasi selesai. Data lokal tetap tersimpan di perangkat ini.')}
 async function saveCloudMasterDataFrom(data){const {error}=await supabaseClient.from('cashflow_workspace_settings').upsert({workspace_id:WORKSPACE_ID,master_data:data,updated_by:currentUser.id,updated_at:new Date().toISOString()},{onConflict:'workspace_id'});if(error)throw error}
