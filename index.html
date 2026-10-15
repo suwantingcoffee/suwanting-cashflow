@@ -692,6 +692,14 @@ body.dark-mode .table-wrap .row-actions button{
 body.dark-mode .table-wrap .row-actions button.danger,
 body.dark-mode .table-wrap .row-actions button.delete{color:#ffaaa2!important}
 
+.transaction-photo-preview{display:flex;align-items:center;gap:12px;margin-top:10px;padding:10px;border:1px solid var(--line);border-radius:14px;background:var(--paper,#fffdfb)}
+.transaction-photo-preview img{width:90px;height:90px;object-fit:cover;border-radius:10px}
+.transaction-photo-preview>div{display:grid;gap:8px;min-width:0}
+.transaction-photo-preview span{font-size:11px;overflow-wrap:anywhere}
+.transaction-photo-preview button{justify-self:start;padding:7px 10px;font-size:11px}
+.photo-viewer-modal{width:min(800px,100%)}
+.photo-viewer-modal>img{display:block;max-width:100%;max-height:70vh;margin:0 auto;object-fit:contain;border-radius:12px}
+body.dark-mode .transaction-photo-preview{background:#28221e;border-color:#514035;color:#f0e5dc}
 
 /* V10: lightweight text/Font Awesome brand; no embedded image data */
 .login-card .logo-mark{width:44px;height:44px;flex:0 0 44px}
@@ -882,6 +890,7 @@ body.dark-mode .reconfirm-icon{background:#493123;color:#ffc18d}
         <div class="field"><label for="unit">Satuan</label><select id="unit"><option>pcs</option><option>kg</option><option>gram</option><option>pack</option><option>box</option><option>liter</option><option>unit</option><option>jam</option><option>lainnya</option></select></div>
         <div class="field"><label for="unitPrice">Harga satuan (Rp)</label><input id="unitPrice" type="number" min="0" step="1" placeholder="0"></div>
         <div class="field"><label for="amount">Total nilai (Rp) *</label><input id="amount" type="number" min="0" step="1" placeholder="0" required><div id="amountHint" class="panel-sub hidden">Biaya roasting dicatat sebagai pengeluaran dan mengurangi saldo kas satu kali.</div></div>
+        <div class="field full"><label for="transactionPhoto">Foto bukti / detail transaksi</label><input id="transactionPhoto" type="file" accept="image/*" capture="environment"><div class="panel-sub">Foto tersimpan bersama transaksi dan tersinkron ke cloud. Pilih gambar maksimal 10 MB; foto dikompresi hingga 700 KB sebelum disimpan.</div><div id="transactionPhotoPreview" class="transaction-photo-preview hidden"><img id="transactionPhotoImage" alt="Pratinjau foto transaksi"><div><span id="transactionPhotoName"></span><button type="button" class="danger" id="removeTransactionPhoto">Hapus foto</button></div></div></div>
         <div class="field full hidden" id="stockPurchaseField"><label class="stock-purchase-option"><input id="stockPurchase" type="checkbox" style="width:auto;margin-right:7px"> Barang yang dibeli masuk ke persediaan</label><div class="panel-sub">Nilainya tetap dicatat sebagai pengeluaran; jumlah barang ditambahkan ke stok otomatis.</div></div>
         <div class="field full hidden" id="stockSaleField"><label class="stock-purchase-option"><input id="stockSale" type="checkbox" style="width:auto;margin-right:7px"> Barang terjual mengurangi persediaan</label><div class="panel-sub">Pemasukan dan pengurangan stok akan tercatat dalam transaksi yang sama.</div></div>
         <div class="field full hidden" id="roastInputNameField"><label for="roastInputName">Bahan yang digunakan *</label><input id="roastInputName" list="roastStockOptions" placeholder="Pilih atau ketik nama bahan"><datalist id="roastStockOptions"></datalist><div id="roastStockHint" class="panel-sub">Pilih bahan dan satuan yang sama dengan stok.</div></div>
@@ -921,6 +930,9 @@ body.dark-mode .reconfirm-icon{background:#493123;color:#ffc18d}
   <div class="modal-top"><div><h2 id="modalTitle">Tambah transaksi</h2><div class="panel-sub">Isi detail di bawah, lalu simpan untuk memperbarui pembukuan.</div></div><button class="ghost modal-x" id="closeTransactionModal" type="button" aria-label="Tutup">×</button></div>
   <div id="transactionModalContent"></div>
 </div></div>
+<div id="photoViewer" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="photoViewerTitle">
+  <div class="modal photo-viewer-modal"><div class="modal-top"><h2 id="photoViewerTitle">Foto transaksi</h2><button class="ghost modal-x" id="closePhotoViewer" type="button" aria-label="Tutup foto">×</button></div><img id="photoViewerImage" alt="Foto bukti transaksi"></div>
+</div>
 
 <div id="profileModal" class="modal-backdrop hidden">
   <div class="modal profile-modal">
@@ -1001,7 +1013,7 @@ function syncMasterSelects(){
 
 const TYPE_LABEL={modal:'Modal masuk',income:'Pemasukan',expense:'Pengeluaran',stockin:'Barang masuk',stockout:'Barang keluar',roast:'Produksi / roasting'};
 const $=id=>document.getElementById(id);
-let currentUser=null, records=[], activeType='modal', toastTimer;
+let currentUser=null, records=[], activeType='modal', toastTimer,transactionPhotoData='',transactionPhotoName='';
 let supabaseClient=null, cloudSnapshot=new Map(), cloudChannel=null, cloudReady=false, suppressCloudWrites=false;
 function loadLocalRecords(){try{const raw=localStorage.getItem(STORAGE_KEY);const arr=raw?JSON.parse(raw):[];return Array.isArray(arr)?arr:[]}catch(e){return []}}
 function loadLocalMasterData(){try{return normalizeMasterData(JSON.parse(localStorage.getItem(MASTER_KEY)||'null'))}catch(e){return normalizeMasterData(null)}}
@@ -1026,6 +1038,48 @@ function save(){return persist()}
 function rupiah(n){return new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(Number(n)||0)}
 function num(v){return Number(v)||0}
 function safe(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function renderTransactionPhotoPreview(){
+ const preview=$('transactionPhotoPreview'),image=$('transactionPhotoImage');
+ preview.classList.toggle('hidden',!transactionPhotoData);
+ if(transactionPhotoData){image.src=transactionPhotoData;$('transactionPhotoName').textContent=transactionPhotoName||'Foto transaksi';}
+ else image.removeAttribute('src');
+}
+function compressTransactionPhoto(file){
+ if(!file.type.startsWith('image/'))return Promise.reject(new Error('Pilih file gambar untuk foto transaksi.'));
+ if(file.size>10*1024*1024)return Promise.reject(new Error('Ukuran foto maksimal 10 MB.'));
+ return createImageBitmap(file).then(async bitmap=>{
+  try{
+   let scale=Math.min(1,1600/Math.max(bitmap.width,bitmap.height));
+   for(let attempt=0;attempt<8;attempt++){
+    const canvas=document.createElement('canvas');
+    canvas.width=Math.max(1,Math.round(bitmap.width*scale));canvas.height=Math.max(1,Math.round(bitmap.height*scale));
+    const context=canvas.getContext('2d');
+    if(!context)throw new Error('Browser tidak dapat memproses foto ini.');
+    context.fillStyle='#fff';context.fillRect(0,0,canvas.width,canvas.height);context.drawImage(bitmap,0,0,canvas.width,canvas.height);
+    for(const quality of [.82,.72,.62,.52]){
+     const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',quality));
+     if(blob&&blob.size<=700*1024)return await new Promise((resolve,reject)=>{
+      const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>reject(new Error('Gagal membaca foto yang sudah dikompresi.'));reader.readAsDataURL(blob);
+     });
+    }
+    scale*=.8;
+   }
+   throw new Error('Foto tidak dapat dikompresi hingga 700 KB. Pilih foto yang lebih kecil.');
+  }finally{bitmap.close();}
+ });
+}
+function openTransactionPhoto(id){
+ const record=records.find(item=>item.id===id);
+ if(!record?.photoData)return;
+ $('photoViewerTitle').textContent=record.photoName||`Foto transaksi: ${record.name}`;
+ $('photoViewerImage').src=record.photoData;
+ $('photoViewerImage').alt=record.photoName||`Foto bukti ${record.name}`;
+ $('photoViewer').classList.remove('hidden');document.body.classList.add('modal-open');
+}
+function closeTransactionPhoto(){
+ $('photoViewer').classList.add('hidden');$('photoViewerImage').removeAttribute('src');
+ document.body.classList.remove('modal-open');
+}
 function today(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
 function toast(msg){$('toast').textContent=msg;$('toast').classList.remove('hidden');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.add('hidden'),2800)}
 function reconfirm(message,{title='Konfirmasi tindakan',okText='Ya, lanjutkan',danger=false}={}){
@@ -1099,7 +1153,8 @@ function renderRows(){
   const stockNote=r.type==='expense'&&r.stockPurchase?'<br><span class="muted">Barang masuk ke stok</span>':r.type==='income'&&r.stockSale?'<br><span class="muted">Barang keluar dari stok</span>':'';
   const tagClass=['modal','income','stockin'].includes(r.type)?'in':r.type==='roast'?'stock':r.type==='stockout'?'stock':'out';
   const roastCost=r.type==='roast'&&num(r.amount)>0?`<br><span class="muted">Biaya roasting: ${rupiah(r.amount)}</span>`:'';
-  return `<tr><td>${safe(r.date)}<br><span class="muted">${safe(r.time||'—')}</span></td><td><span class="tag ${tagClass}">${safe(TYPE_LABEL[r.type]||r.type)}</span></td><td><strong>${safe(r.name)}</strong><br><span class="muted">${safe(r.category)}${r.party?' · '+safe(r.party):''}</span>${detail}${roastCost}${stockNote}${r.reference?'<br><span class="muted">Ref: '+safe(r.reference)+'</span>':''}</td><td>${num(r.qty).toLocaleString('id-ID')} ${safe(r.unit||'')}</td><td>${rupiah(r.unitPrice)}</td><td><strong>${rupiah(r.amount)}</strong></td><td>${safe(r.createdBy||'—')}</td><td><div class="row-actions"><button class="soft" data-edit="${safe(r.id)}">Edit</button><button class="danger" data-delete="${safe(r.id)}">Hapus</button></div></td></tr>`
+  const photo=r.photoData?`<br><button type="button" class="soft" data-view-photo="${safe(r.id)}">Lihat foto${r.photoName?' · '+safe(r.photoName):''}</button>`:'';
+  return `<tr><td>${safe(r.date)}<br><span class="muted">${safe(r.time||'—')}</span></td><td><span class="tag ${tagClass}">${safe(TYPE_LABEL[r.type]||r.type)}</span></td><td><strong>${safe(r.name)}</strong><br><span class="muted">${safe(r.category)}${r.party?' · '+safe(r.party):''}</span>${detail}${roastCost}${stockNote}${photo}${r.reference?'<br><span class="muted">Ref: '+safe(r.reference)+'</span>':''}</td><td>${num(r.qty).toLocaleString('id-ID')} ${safe(r.unit||'')}</td><td>${rupiah(r.unitPrice)}</td><td><strong>${rupiah(r.amount)}</strong></td><td>${safe(r.createdBy||'—')}</td><td><div class="row-actions"><button class="soft" data-edit="${safe(r.id)}">Edit</button><button class="danger" data-delete="${safe(r.id)}">Hapus</button></div></td></tr>`
  }).join(''):'<tr><td colspan="8" class="empty">Belum ada transaksi yang sesuai filter.</td></tr>';
  $('tableSummary').textContent=`Menampilkan ${rows.length} dari ${records.length} transaksi · Total nilai tampilan: ${rupiah(rows.reduce((s,r)=>s+num(r.amount),0))}`;
 }
@@ -1158,7 +1213,11 @@ function renderStock(){const list=Object.values(inventoryBalances()).sort((a,b)=
 function renderChart(){const d=new Date(),months=[];for(let i=5;i>=0;i--){const dt=new Date(d.getFullYear(),d.getMonth()-i,1);const key=`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`;months.push({key,label:dt.toLocaleDateString('id-ID',{month:'short'})})}const vals=months.map(m=>({ ...m,inc:records.filter(r=>r.date?.startsWith(m.key)&&['modal','income'].includes(r.type)).reduce((s,r)=>s+num(r.amount),0),out:records.filter(r=>r.date?.startsWith(m.key)&&['expense','roast'].includes(r.type)).reduce((s,r)=>s+num(r.amount),0)}));const max=Math.max(1,...vals.flatMap(v=>[v.inc,v.out]));$('cashChart').innerHTML=vals.map(v=>`<div class="bar-col"><span>${v.inc?Math.round(v.inc/1000)+'k':'—'}</span><div class="bar" title="Modal + pemasukan: ${rupiah(v.inc)}" style="height:${Math.max(3,v.inc/max*80)}%"></div><div class="bar" title="Pengeluaran: ${rupiah(v.out)}" style="height:${Math.max(3,v.out/max*80)}%;background:linear-gradient(180deg,#d5a58a,#9b7059)"></div><small>${safe(v.label)}</small></div>`).join('')}
 function renderMonthFilter(){const old=$('filterMonth').value,months=[...new Set(records.map(r=>r.date?.slice(0,7)).filter(Boolean))].sort().reverse();$('filterMonth').innerHTML='<option value="">Semua bulan</option>'+months.map(m=>`<option value="${m}">${new Date(m+'-01T00:00:00').toLocaleDateString('id-ID',{month:'long',year:'numeric'})}</option>`).join('');if(months.includes(old))$('filterMonth').value=old}
 function renderAll(){renderStats();renderMonthFilter();renderRows();renderRecent();renderStock();renderChart()}
-function clearForm(){ $('transactionForm').reset();$('editId').value='';$('date').value=today();$('time').value=new Date().toTimeString().slice(0,5);$('qty').value='1';$('formTitle').textContent='Tambah transaksi';$('modalTitle').textContent='Tambah transaksi';$('saveBtn').textContent='Simpan transaksi';$('cancelEdit').classList.add('hidden');setType(activeType)}
+function clearForm(){
+ $('transactionForm').reset();$('editId').value='';transactionPhotoData='';transactionPhotoName='';renderTransactionPhotoPreview();
+ $('date').value=today();$('time').value=new Date().toTimeString().slice(0,5);$('qty').value='1';
+ $('formTitle').textContent='Tambah transaksi';$('modalTitle').textContent='Tambah transaksi';$('saveBtn').textContent='Simpan transaksi';$('cancelEdit').classList.add('hidden');setType(activeType);
+}
 function openTransactionModal(){ $('transactionModal').classList.remove('hidden'); document.body.classList.add('modal-open'); }
 function closeTransactionModal(){ $('transactionModal').classList.add('hidden'); document.body.classList.remove('modal-open'); }
 function openEntry(type='modal'){
@@ -1183,6 +1242,7 @@ function startEdit(id){
  $('roastInputUnit').value=r.inputUnit||masterData.units[0]||'kg';
  $('stockPurchase').checked=r.stockPurchase===true;
  $('stockSale').checked=r.stockSale===true;
+ transactionPhotoData=r.photoData||'';transactionPhotoName=r.photoName||'';renderTransactionPhotoPreview();
  if(r.type==='roast'){syncRoastStockOptions(r.id);addSelectOption($('roastInputUnit'),r.inputUnit);addSelectOption($('unit'),r.unit)}
  $('formTitle').textContent='Edit transaksi';$('modalTitle').textContent='Edit transaksi';$('saveBtn').textContent='Simpan perubahan';$('cancelEdit').classList.remove('hidden');openTransactionModal();
 }
@@ -1190,7 +1250,7 @@ async function deleteRecord(id){const r=records.find(x=>x.id===id);if(!r)return;
 function exportExcel(data=records,filtered=false){
  if(!window.XLSX){toast('Library Excel gagal dimuat. Periksa koneksi internet.');return}
  const sorted=[...data].sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
- const detail=sorted.map(r=>({'Tanggal':r.date,'Jam':r.time,'Jenis':TYPE_LABEL[r.type]||r.type,'Kategori':r.category,'Nama Barang / Transaksi':r.name,'Kuantitas':num(r.qty),'Satuan':r.unit,'Bahan Roasting':r.inputName||'','Bahan Digunakan':num(r.inputQty),'Satuan Bahan':r.inputUnit||'','Masuk Stok':r.stockPurchase?'Ya':'','Keluar Stok':r.stockSale?'Ya':'','Biaya Roasting (Rp)':r.type==='roast'?num(r.amount):0,'Harga Satuan (Rp)':num(r.unitPrice),'Total (Rp)':num(r.amount),'Metode Pembayaran':r.payment,'Supplier / Sumber / Penerima':r.party,'No. Nota / Referensi':r.reference,'Kas / Rekening':r.account,'Catatan':r.notes,'Dicatat Oleh':r.createdBy,'Terakhir Diedit Oleh':r.updatedBy||r.createdBy,'Waktu Dibuat':r.createdAt,'Waktu Diedit':r.updatedAt||''}));
+ const detail=sorted.map(r=>({'Tanggal':r.date,'Jam':r.time,'Jenis':TYPE_LABEL[r.type]||r.type,'Kategori':r.category,'Nama Barang / Transaksi':r.name,'Kuantitas':num(r.qty),'Satuan':r.unit,'Bahan Roasting':r.inputName||'','Bahan Digunakan':num(r.inputQty),'Satuan Bahan':r.inputUnit||'','Masuk Stok':r.stockPurchase?'Ya':'','Keluar Stok':r.stockSale?'Ya':'','Biaya Roasting (Rp)':r.type==='roast'?num(r.amount):0,'Foto Bukti':r.photoName||'','Harga Satuan (Rp)':num(r.unitPrice),'Total (Rp)':num(r.amount),'Metode Pembayaran':r.payment,'Supplier / Sumber / Penerima':r.party,'No. Nota / Referensi':r.reference,'Kas / Rekening':r.account,'Catatan':r.notes,'Dicatat Oleh':r.createdBy,'Terakhir Diedit Oleh':r.updatedBy||r.createdBy,'Waktu Dibuat':r.createdAt,'Waktu Diedit':r.updatedAt||''}));
  const sum=cashStats();
  const summary=[{'Ringkasan':'Total modal masuk','Nilai (Rp)':sum.capital},{'Ringkasan':'Total pemasukan','Nilai (Rp)':sum.income},{'Ringkasan':'Total pengeluaran','Nilai (Rp)':sum.expense},{'Ringkasan':'Arus kas bersih','Nilai (Rp)':sum.net},{'Ringkasan':'Jumlah transaksi','Nilai (Rp)':records.length}];
  const wb=XLSX.utils.book_new();
@@ -1332,9 +1392,22 @@ document.querySelectorAll('[data-go-page]').forEach(btn=>btn.addEventListener('c
 document.querySelectorAll('[data-open-entry]').forEach(btn=>btn.addEventListener('click',()=>openEntry('modal')));
 document.querySelectorAll('[data-open-stock]').forEach(btn=>btn.addEventListener('click',()=>openEntry('stockin')));
 document.querySelectorAll('[data-open-roast]').forEach(btn=>btn.addEventListener('click',()=>openEntry('roast')));
+$('transactionPhoto').addEventListener('change',async e=>{
+ const file=e.target.files?.[0];if(!file)return;
+ try{
+  transactionPhotoData=await compressTransactionPhoto(file);transactionPhotoName=file.name;renderTransactionPhotoPreview();
+  toast('Foto berhasil dikompresi dan siap disimpan.');
+ }catch(err){toast(err.message||'Gagal memproses foto transaksi.');}
+ e.target.value='';
+});
+$('removeTransactionPhoto').addEventListener('click',()=>{
+ transactionPhotoData='';transactionPhotoName='';$('transactionPhoto').value='';renderTransactionPhotoPreview();
+});
+$('closePhotoViewer').addEventListener('click',closeTransactionPhoto);
+$('photoViewer').addEventListener('click',e=>{if(e.target===$('photoViewer'))closeTransactionPhoto()});
 $('closeTransactionModal').addEventListener('click',closeTransactionModal);
 $('transactionModal').addEventListener('click',e=>{if(e.target===$('transactionModal'))closeTransactionModal()});
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeTransactionModal();$('modalBackdrop').classList.add('hidden')}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeTransactionPhoto();closeTransactionModal();$('modalBackdrop').classList.add('hidden')}});
 $('inventoryExportBtn').addEventListener('click',()=>exportExcel(records));
 $('reportExportBtn').addEventListener('click',()=>exportExcel(records));
 $('transactionTypeSelect').addEventListener('change',async e=>{const nextType=e.target.value;if(nextType===activeType)return;if($('editId').value){const ok=await reconfirm('Mengganti jenis transaksi akan membatalkan perubahan pada transaksi yang sedang diedit. Lanjutkan?',{title:'Ganti jenis transaksi?',okText:'Ya, ganti'});if(!ok){e.target.value=activeType;return}clearForm()}setType(nextType);toast('Jenis transaksi diperbarui.');});
@@ -1365,7 +1438,7 @@ $('transactionForm').addEventListener('submit',async e=>{
   id:editId||`${Date.now()}-${Math.random().toString(36).slice(2,8)}`,type,date:$('date').value,time:$('time').value,
   category:$('category').value,name:$('name').value.trim(),qty:num($('qty').value),unit:$('unit').value,
   unitPrice:num($('unitPrice').value),amount,payment:$('payment').value,party:$('party').value.trim(),
-  reference:$('reference').value.trim(),account:$('account').value,notes:$('notes').value.trim(),
+  reference:$('reference').value.trim(),account:$('account').value,notes:$('notes').value.trim(),photoData:transactionPhotoData,photoName:transactionPhotoName,
   stockPurchase:type==='expense'&&$('stockPurchase').checked,stockSale:type==='income'&&$('stockSale').checked,inputName:$('roastInputName').value.trim(),
   inputQty:num($('roastInputQty').value),inputUnit:$('roastInputUnit').value,
   createdBy:old?.createdBy||displayName(currentUser),updatedBy:old?displayName(currentUser):null,
@@ -1397,7 +1470,7 @@ $('transactionForm').addEventListener('submit',async e=>{
  }
 });
 $('resetBtn').addEventListener('click',()=>setTimeout(clearForm,0));$('cancelEdit').addEventListener('click',()=>{clearForm();closeTransactionModal()});
-$('transactionRows').addEventListener('click',e=>{const edit=e.target.closest('[data-edit]'),del=e.target.closest('[data-delete]');if(edit)startEdit(edit.dataset.edit);if(del)deleteRecord(del.dataset.delete)});
+$('transactionRows').addEventListener('click',e=>{const photo=e.target.closest('[data-view-photo]'),edit=e.target.closest('[data-edit]'),del=e.target.closest('[data-delete]');if(photo){openTransactionPhoto(photo.dataset.viewPhoto);return}if(edit)startEdit(edit.dataset.edit);if(del)deleteRecord(del.dataset.delete)});
 ['search','filterType','filterMonth'].forEach(id=>$(id).addEventListener(id==='search'?'input':'change',renderRows));
 $('clearFilters').addEventListener('click',()=>{$('search').value='';$('filterType').value='';$('filterMonth').value='';renderRows()});
 $('exportBtn').addEventListener('click',()=>exportExcel(records));$('exportFilteredBtn').addEventListener('click',()=>exportExcel(filteredRecords(),true));
